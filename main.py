@@ -254,7 +254,7 @@ def get_analysis_history(limit: int = 15):
 @app.get("/api/index", response_class=HTMLResponse)
 @app.get("/api/index.py", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
-def get_interactive_dashboard():
+def get_interactive_dashboard(request: Request):
     html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1689,4 +1689,10 @@ def get_interactive_dashboard():
 </body>
 </html>
 """
-    return HTMLResponse(content=html_content)
+    resp = HTMLResponse(content=html_content)
+    resp.headers["X-Vercel-Debug-Scope-Path"] = str(request.scope.get("path"))
+    resp.headers["X-Vercel-Debug-Keys"] = ",".join(list(request.headers.keys())[:15])
+    for k in ["x-matched-path", "x-forwarded-uri", "x-now-route-matches", "x-forwarded-path", "x-real-ip", "x-vercel-sc-path"]:
+        if k in request.headers:
+            resp.headers[f"X-Vercel-Debug-{k}"] = str(request.headers[k])
+    return resp
