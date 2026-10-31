@@ -219,20 +219,18 @@ Unlike crude algorithmic stemming (e.g., Porter stemmer which truncates word end
 
 ```text
 Smart-Review-Analyzer/
-├── api/
-│   └── index.py             # Vercel serverless entry point
 ├── models/
 │   ├── dataset_benchmark.csv# Stratified review benchmark dataset
 │   ├── tfidf_vectorizer.pkl # Serialized TF-IDF vectorizer artifact
 │   ├── sentiment_lr_model.pkl# Trained Logistic Regression model
 │   └── sentiment_nb_model.pkl# Trained Naive Bayes model
-├── index.py                 # Root ASGI compatibility bridge
+├── index.py                 # ASGI compatibility entry point
 ├── main.py                  # FastAPI application, REST endpoints & dashboard GUI
 ├── nlp_engine.py            # Core NLP preprocessing, VADER, TextBlob & ABSA
 ├── ml_trainer.py            # Model training, evaluation & confusion matrix
 ├── test_pipeline.py         # Pytest test suite
 ├── requirements.txt         # Production dependency specifications
-├── vercel.json              # Vercel serverless deployment routing
+├── pyproject.toml           # Vercel deployment & Python package configuration
 ├── LICENSE                  # MIT Open Source License
 └── README.md                # Project documentation & reference
 ```
