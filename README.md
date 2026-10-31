@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Vercel%20Deployment-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://smart-review-analyzer-bay.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Vercel%20Deployment-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://smart-review-analyzer-sandy.vercel.app/)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-Machine%20Learning-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
@@ -14,7 +14,7 @@
 
 **An enterprise-ready, multi-layered Natural Language Processing (NLP) and Machine Learning sentiment intelligence platform designed to analyze customer reviews, detect aspect-level feedback, quantify opinion subjectivity, and evaluate classification algorithms with real-time analytics.**
 
-[🌐 **Live Web Application**](https://smart-review-analyzer-bay.vercel.app/) • [📖 **Interactive API Docs (/docs)**](https://smart-review-analyzer-bay.vercel.app/docs) • [🐛 **Report an Issue**](https://github.com/surajsingh4507-del/Smart-Review-Analyzer/issues)
+[🌐 **Live Web Application**](https://smart-review-analyzer-sandy.vercel.app/) • [📖 **Interactive API Docs (/docs)**](https://smart-review-analyzer-sandy.vercel.app/docs) • [🐛 **Report an Issue**](https://github.com/surajsingh4507-del/Smart-Review-Analyzer/issues)
 
 </div>
 
@@ -23,8 +23,7 @@
 ## 🚀 Live Demo & Web Interface
 
 The platform is fully deployed and accessible live in your browser:
-👉 **[https://smart-review-analyzer-bay.vercel.app/](https://smart-review-analyzer-bay.vercel.app/)**  
-*(Deployment Mirror: [https://smart-review-analyzer-sandy.vercel.app/](https://smart-review-analyzer-sandy.vercel.app/))*
+👉 **[https://smart-review-analyzer-sandy.vercel.app/](https://smart-review-analyzer-sandy.vercel.app/)**
 
 ### Interactive UI Capabilities
 - **📊 Real-Time Chart.js Doughnut:** Dynamic visual breakdown of Positive, Negative, and Neutral sentiment distribution.
