@@ -86,14 +86,6 @@ def api_docs_redirect():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/docs")
 
-@app.get("/api/debug-headers")
-def debug_headers(request: Request):
-    return {
-        "scope_path": request.scope.get("path"),
-        "headers": dict(request.headers),
-        "url": str(request.url)
-    }
-
 @app.post("/api/analyze")
 @app.post("/analyze")
 def analyze_single_review(payload: SingleReviewRequest):
@@ -254,7 +246,7 @@ def get_analysis_history(limit: int = 15):
 @app.get("/api/index", response_class=HTMLResponse)
 @app.get("/api/index.py", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
-def get_interactive_dashboard(request: Request):
+def get_interactive_dashboard():
     html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1689,10 +1681,4 @@ def get_interactive_dashboard(request: Request):
 </body>
 </html>
 """
-    resp = HTMLResponse(content=html_content)
-    resp.headers["X-Vercel-Debug-Scope-Path"] = str(request.scope.get("path"))
-    resp.headers["X-Vercel-Debug-Keys"] = ",".join(list(request.headers.keys())[:15])
-    for k in ["x-matched-path", "x-forwarded-uri", "x-now-route-matches", "x-forwarded-path", "x-real-ip", "x-vercel-sc-path"]:
-        if k in request.headers:
-            resp.headers[f"X-Vercel-Debug-{k}"] = str(request.headers[k])
-    return resp
+    return HTMLResponse(content=html_content)
