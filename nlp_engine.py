@@ -1,45 +1,52 @@
 import re
 import string
 import os
-import nltk
 
-# Configure NLTK data path for Vercel Serverless environment
-nltk_data_dir = "/tmp/nltk_data" if os.environ.get("VERCEL") else os.path.expanduser("~/nltk_data")
-if nltk_data_dir not in nltk.data.path:
-    nltk.data.path.append(nltk_data_dir)
-
-try:
-    from nltk.corpus import stopwords
-    from nltk.stem import WordNetLemmatizer
-    from nltk.sentiment.vader import SentimentIntensityAnalyzer
-    # Verify resources
-    stopwords.words('english')
-except Exception:
-    nltk.download('vader_lexicon', download_dir=nltk_data_dir, quiet=True)
-    nltk.download('punkt', download_dir=nltk_data_dir, quiet=True)
-    nltk.download('punkt_tab', download_dir=nltk_data_dir, quiet=True)
-    nltk.download('stopwords', download_dir=nltk_data_dir, quiet=True)
-    nltk.download('wordnet', download_dir=nltk_data_dir, quiet=True)
-    from nltk.corpus import stopwords
-    from nltk.stem import WordNetLemmatizer
-    from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
+# 1. Standalone VADER without external nltk downloads
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
 
-# Initialize lemmatizer and sentiment analyzer
-lemmatizer = WordNetLemmatizer()
-stop_words = set(stopwords.words('english'))
 sia = SentimentIntensityAnalyzer()
 
+# 2. Built-in English Stopwords (Offline, Zero download, Zero cold-start latency)
+ENGLISH_STOPWORDS = {
+    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
+    "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can't",
+    "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during",
+    "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
+    "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how",
+    "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself",
+    "let's", "me", "more", "most", "mustn't", "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only",
+    "or", "other", "ought", "our", "ours", "ourselves", "out", "over", "own", "same", "shan't", "she", "she'd",
+    "she'll", "she's", "should", "shouldn't", "so", "some", "such", "than", "that", "that's", "the", "their",
+    "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd", "they'll", "they're",
+    "they've", "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we",
+    "we'd", "we'll", "we're", "we've", "were", "weren't", "what", "what's", "when", "when's", "where", "where's",
+    "which", "while", "who", "who's", "whom", "why", "why's", "with", "won't", "would", "wouldn't", "you",
+    "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"
+}
+
+def morphological_lemmatize(word: str) -> str:
+    """
+    Robust rule-based morphological lemmatizer for key suffixes.
+    Completely offline and fast for serverless lambda environments.
+    """
+    w = word.lower()
+    if len(w) <= 3:
+        return w
+    if w.endswith("ies") and len(w) > 4:
+        return w[:-3] + "y"
+    if w.endswith("es") and len(w) > 3:
+        return w[:-2]
+    if w.endswith("s") and not w.endswith("ss") and len(w) > 3:
+        return w[:-1]
+    if w.endswith("ing") and len(w) > 4:
+        return w[:-3]
+    if w.endswith("ed") and len(w) > 3:
+        return w[:-2]
+    return w
+
 def clean_and_tokenize(text: str) -> dict:
-    """
-    Step 1: NLP Preprocessing Pipeline
-    - Lowercasing
-    - Regex cleaning (removing punctuation, special characters, extra whitespaces)
-    - Tokenization
-    - Stop-words separation
-    - Lemmatization (WordNet dictionary root form)
-    """
     if not text or not text.strip():
         return {
             "cleaned_text": "",
@@ -50,20 +57,14 @@ def clean_and_tokenize(text: str) -> dict:
             "total_words": 0
         }
     
-    # 1. Lowercasing
     lowered = text.lower().strip()
-    
-    # 2. Remove punctuation and special characters
     clean_str = re.sub(r'[^a-zA-Z0-9\s]', ' ', lowered)
     clean_str = re.sub(r'\s+', ' ', clean_str).strip()
-    
-    # 3. Simple Tokenization (split by whitespace)
     raw_tokens = clean_str.split()
     
-    # 4. Stopwords identification and removal
-    stopwords_found = [t for t in raw_tokens if t in stop_words]
-    tokens_no_stops = [t for t in raw_tokens if t not in stop_words and len(t) > 1]
-    lemmatized = [lemmatizer.lemmatize(t) for t in tokens_no_stops]
+    stopwords_found = [t for t in raw_tokens if t in ENGLISH_STOPWORDS]
+    tokens_no_stops = [t for t in raw_tokens if t not in ENGLISH_STOPWORDS and len(t) > 1]
+    lemmatized = [morphological_lemmatize(t) for t in tokens_no_stops]
     
     return {
         "cleaned_text": " ".join(lemmatized),
@@ -75,13 +76,6 @@ def clean_and_tokenize(text: str) -> dict:
     }
 
 def analyze_word_sentiments(text: str) -> list:
-    """
-    Analyzes individual words or tokens in the text using VADER lexicon
-    to enable color-coded highlighting in the UI:
-    - Positive words (green)
-    - Negative words (red)
-    - Neutral words (regular)
-    """
     if not text:
         return []
     
@@ -106,19 +100,15 @@ def analyze_word_sentiments(text: str) -> list:
             "word": w,
             "sentiment": sentiment,
             "score": round(score, 2),
-            "is_stopword": w_lower in stop_words
+            "is_stopword": w_lower in ENGLISH_STOPWORDS
         })
         
     return word_details
 
 def analyze_vader_sentiment(text: str, threshold: float = 0.05) -> dict:
-    """
-    Rule-based Sentiment Analysis using VADER with adjustable cutoff threshold.
-    """
     scores = sia.polarity_scores(text)
     compound = scores['compound']
     
-    # Dynamic threshold classification
     if compound >= threshold:
         sentiment = "Positive"
     elif compound <= -threshold:
@@ -136,14 +126,13 @@ def analyze_vader_sentiment(text: str, threshold: float = 0.05) -> dict:
     }
 
 def analyze_textblob_metrics(text: str) -> dict:
-    """
-    Polarity and Subjectivity metrics using TextBlob.
-    - Polarity: [-1.0 to 1.0]
-    - Subjectivity: [0.0 (Objective/Fact) to 1.0 (Subjective/Personal Opinion)]
-    """
-    blob = TextBlob(text)
-    polarity = blob.sentiment.polarity
-    subjectivity = blob.sentiment.subjectivity
+    try:
+        blob = TextBlob(text)
+        polarity = blob.sentiment.polarity
+        subjectivity = blob.sentiment.subjectivity
+    except Exception:
+        polarity = 0.0
+        subjectivity = 0.0
     
     if polarity > 0.1:
         tb_sentiment = "Positive"
@@ -160,11 +149,7 @@ def analyze_textblob_metrics(text: str) -> dict:
     }
 
 def extract_aspects_and_category(text: str) -> dict:
-    """
-    Aspect-based category classifier, keyword frequency extractor, and business recommendation.
-    """
     text_lower = text.lower()
-    
     categories = []
     aspect_keywords_found = []
     
@@ -200,7 +185,6 @@ def extract_aspects_and_category(text: str) -> dict:
     if not categories:
         categories.append("General Feedback")
         
-    # Urgency Priority & Automated Business Action Recommendation
     vader = analyze_vader_sentiment(text)
     sentiment = vader["sentiment"]
     
@@ -225,20 +209,15 @@ def extract_aspects_and_category(text: str) -> dict:
     }
 
 def complete_review_analysis(review_text: str, threshold: float = 0.05) -> dict:
-    """
-    Master pipeline unifying Preprocessing, Lexicon Sentiment (VADER), 
-    Subjectivity (TextBlob), Word-level Tagging, Aspects, and Action Recommendations.
-    """
     preprocessing = clean_and_tokenize(review_text)
     vader = analyze_vader_sentiment(review_text, threshold)
     textblob_metrics = analyze_textblob_metrics(review_text)
     aspects = extract_aspects_and_category(review_text)
     word_tokens = analyze_word_sentiments(review_text)
     
-    # Confidence Score based on absolute compound polarity
     confidence = round(abs(vader["compound_score"]) * 100, 2)
     if confidence < 30.0:
-        confidence = 65.0  # baseline confidence for weak signals
+        confidence = 65.0
         
     return {
         "original_review": review_text,
