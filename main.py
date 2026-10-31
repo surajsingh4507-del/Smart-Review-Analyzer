@@ -27,33 +27,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = os.environ.get("SQLITE_DB_PATH", "/tmp/reviews.db" if os.environ.get("VERCEL") else "reviews.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.environ.get("SQLITE_DB_PATH", "/tmp/reviews.db" if os.environ.get("VERCEL") else os.path.join(BASE_DIR, "reviews.db"))
 
 def init_sqlite_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reviews_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            review TEXT NOT NULL,
-            sentiment TEXT NOT NULL,
-            confidence REAL NOT NULL,
-            categories TEXT NOT NULL,
-            priority TEXT NOT NULL,
-            vader_compound REAL NOT NULL,
-            subjectivity REAL NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS reviews_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                review TEXT NOT NULL,
+                sentiment TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                categories TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                vader_compound REAL NOT NULL,
+                subjectivity REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"SQLite Init Warning: {e}")
 
 init_sqlite_db()
 
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 try:
-    vectorizer = joblib.load("models/tfidf_vectorizer.pkl")
-    lr_model = joblib.load("models/sentiment_lr_model.pkl")
-    nb_model = joblib.load("models/sentiment_nb_model.pkl")
+    vectorizer = joblib.load(os.path.join(MODELS_DIR, "tfidf_vectorizer.pkl"))
+    lr_model = joblib.load(os.path.join(MODELS_DIR, "sentiment_lr_model.pkl"))
+    nb_model = joblib.load(os.path.join(MODELS_DIR, "sentiment_nb_model.pkl"))
 except Exception:
     vectorizer, lr_model, nb_model = None, None, None
 
