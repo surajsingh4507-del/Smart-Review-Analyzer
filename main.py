@@ -71,6 +71,7 @@ class BatchReviewRequest(BaseModel):
     threshold: Optional[float] = 0.05
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
@@ -80,7 +81,13 @@ def health_check():
         "database": "SQLite"
     }
 
+@app.get("/api/docs", include_in_schema=False)
+def api_docs_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
 @app.post("/api/analyze")
+@app.post("/analyze")
 def analyze_single_review(payload: SingleReviewRequest):
     text = payload.review.strip()
     if not text:
@@ -145,6 +152,7 @@ def analyze_single_review(payload: SingleReviewRequest):
     return result
 
 @app.post("/api/analyze-batch")
+@app.post("/analyze-batch")
 def analyze_batch_reviews(payload: BatchReviewRequest):
     valid_reviews = [r.strip() for r in payload.reviews if r.strip()]
     if not valid_reviews:
@@ -172,6 +180,7 @@ def analyze_batch_reviews(payload: BatchReviewRequest):
     }
 
 @app.post("/api/upload-csv")
+@app.post("/upload-csv")
 async def upload_csv_batch(file: UploadFile = File(...)):
     contents = await file.read()
     try:
@@ -194,6 +203,7 @@ async def upload_csv_batch(file: UploadFile = File(...)):
     return analyze_batch_reviews(BatchReviewRequest(reviews=lines[:100]))
 
 @app.get("/api/export-history-csv")
+@app.get("/export-history-csv")
 def export_history_csv():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -215,10 +225,12 @@ def export_history_csv():
     )
 
 @app.get("/api/metrics")
+@app.get("/metrics")
 def get_evaluation_metrics():
     return train_and_evaluate_models()
 
 @app.get("/api/history")
+@app.get("/history")
 def get_analysis_history(limit: int = 15):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -229,6 +241,11 @@ def get_analysis_history(limit: int = 15):
     return {"count": len(rows), "history": rows}
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
+@app.get("/api/", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
 def get_interactive_dashboard():
     html_content = """<!DOCTYPE html>
 <html lang="en">
