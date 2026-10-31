@@ -145,4 +145,6 @@ yarn-error.log
 "agent-service-v2/travel2.backup.sqlite" 
 "agent-service-v2/travel2.sqlite" 
 *.sqlite
-*.backup.sqlite
+*.backup.sqlite 
+*.db
+reviews.db
