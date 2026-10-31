@@ -1,9 +1,29 @@
 import re
 import string
+import os
 import nltk
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+# Configure NLTK data path for Vercel Serverless environment
+nltk_data_dir = "/tmp/nltk_data" if os.environ.get("VERCEL") else os.path.expanduser("~/nltk_data")
+if nltk_data_dir not in nltk.data.path:
+    nltk.data.path.append(nltk_data_dir)
+
+try:
+    from nltk.corpus import stopwords
+    from nltk.stem import WordNetLemmatizer
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+    # Verify resources
+    stopwords.words('english')
+except Exception:
+    nltk.download('vader_lexicon', download_dir=nltk_data_dir, quiet=True)
+    nltk.download('punkt', download_dir=nltk_data_dir, quiet=True)
+    nltk.download('punkt_tab', download_dir=nltk_data_dir, quiet=True)
+    nltk.download('stopwords', download_dir=nltk_data_dir, quiet=True)
+    nltk.download('wordnet', download_dir=nltk_data_dir, quiet=True)
+    from nltk.corpus import stopwords
+    from nltk.stem import WordNetLemmatizer
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
 from textblob import TextBlob
 
 # Initialize lemmatizer and sentiment analyzer

@@ -27,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "reviews.db"
+DB_PATH = os.environ.get("SQLITE_DB_PATH", "/tmp/reviews.db" if os.environ.get("VERCEL") else "reviews.db")
 
 def init_sqlite_db():
     conn = sqlite3.connect(DB_PATH)
