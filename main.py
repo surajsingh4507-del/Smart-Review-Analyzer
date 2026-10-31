@@ -4,7 +4,7 @@ import json
 import csv
 import io
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
@@ -85,6 +85,14 @@ def health_check():
 def api_docs_redirect():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/docs")
+
+@app.get("/api/debug-headers")
+def debug_headers(request: Request):
+    return {
+        "scope_path": request.scope.get("path"),
+        "headers": dict(request.headers),
+        "url": str(request.url)
+    }
 
 @app.post("/api/analyze")
 @app.post("/analyze")
