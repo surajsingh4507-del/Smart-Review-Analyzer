@@ -14,7 +14,7 @@
 
 **An enterprise-ready, multi-layered Natural Language Processing (NLP) and Machine Learning sentiment intelligence platform designed to analyze customer reviews, detect aspect-level feedback, quantify opinion subjectivity, and evaluate classification algorithms with real-time analytics.**
 
-[🌐 **Live Web Application**](https://smart-review-analyzer-sandy.vercel.app/) • [📊 **College Presentation (Slides / PPT)**](https://smart-review-analyzer-sandy.vercel.app/presentation) • [📖 **Interactive API Docs (/docs)**](https://smart-review-analyzer-sandy.vercel.app/docs) • [🐛 **Report an Issue**](https://github.com/surajsingh4507-del/Smart-Review-Analyzer/issues)
+[🌐 **Live Web Application**](https://smart-review-analyzer-sandy.vercel.app/) • [📖 **Interactive API Docs (/docs)**](https://smart-review-analyzer-sandy.vercel.app/docs) • [🐛 **Report an Issue**](https://github.com/surajsingh4507-del/Smart-Review-Analyzer/issues)
 
 </div>
 
@@ -23,8 +23,7 @@
 ## 🚀 Live Demo & Web Interface
 
 The platform is fully deployed and accessible live in your browser:
-👉 **[https://smart-review-analyzer-sandy.vercel.app/](https://smart-review-analyzer-sandy.vercel.app/)**  
-👉 **[View Interactive College Presentation Slides](https://smart-review-analyzer-sandy.vercel.app/presentation)** *(or open [`Smart_Review_Analyzer_College_Presentation.pptx`](./Smart_Review_Analyzer_College_Presentation.pptx))*
+👉 **[https://smart-review-analyzer-sandy.vercel.app/](https://smart-review-analyzer-sandy.vercel.app/)**
 
 ### Interactive UI Capabilities
 - **📊 Real-Time Chart.js Doughnut:** Dynamic visual breakdown of Positive, Negative, and Neutral sentiment distribution.
@@ -219,21 +218,18 @@ Unlike crude algorithmic stemming (e.g., Porter stemmer which truncates word end
 
 ```text
 Smart-Review-Analyzer/
-├── api/
-│   └── index.py             # Vercel serverless entry point
 ├── models/
 │   ├── dataset_benchmark.csv# Stratified review benchmark dataset
 │   ├── tfidf_vectorizer.pkl # Serialized TF-IDF vectorizer artifact
 │   ├── sentiment_lr_model.pkl# Trained Logistic Regression model
 │   └── sentiment_nb_model.pkl# Trained Naive Bayes model
+├── index.py                 # ASGI compatibility entry point
 ├── main.py                  # FastAPI application, REST endpoints & dashboard GUI
-├── presentation.html        # Interactive College Presentation Slide Deck (16:9)
-├── Smart_Review_Analyzer_College_Presentation.pptx # Widescreen PowerPoint Presentation
 ├── nlp_engine.py            # Core NLP preprocessing, VADER, TextBlob & ABSA
 ├── ml_trainer.py            # Model training, evaluation & confusion matrix
 ├── test_pipeline.py         # Pytest test suite
 ├── requirements.txt         # Production dependency specifications
-├── vercel.json              # Vercel serverless routing configuration
+├── pyproject.toml           # Vercel deployment & Python package configuration
 ├── LICENSE                  # MIT Open Source License
 └── README.md                # Project documentation & reference
 ```

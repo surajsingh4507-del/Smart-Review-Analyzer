@@ -240,28 +240,6 @@ def get_analysis_history(limit: int = 15):
     conn.close()
     return {"count": len(rows), "history": rows}
 
-@app.get("/presentation", response_class=HTMLResponse)
-@app.get("/api/presentation", response_class=HTMLResponse)
-def get_presentation_slides():
-    pres_path = os.path.join(BASE_DIR, "presentation.html")
-    if os.path.exists(pres_path):
-        with open(pres_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse(content="<h1>Presentation file not found</h1>", status_code=404)
-
-@app.get("/download-presentation-pptx")
-@app.get("/api/download-presentation-pptx")
-def download_presentation_file():
-    pptx_path = os.path.join(BASE_DIR, "Smart_Review_Analyzer_College_Presentation.pptx")
-    if os.path.exists(pptx_path):
-        from fastapi.responses import FileResponse
-        return FileResponse(
-            pptx_path,
-            filename="Smart_Review_Analyzer_College_Presentation.pptx",
-            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        )
-    raise HTTPException(status_code=404, detail="PPTX file not found")
-
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api", response_class=HTMLResponse)
 @app.get("/api/", response_class=HTMLResponse)
@@ -875,9 +853,6 @@ def get_interactive_dashboard():
                 <p>Natural Language Processing & Sentiment Intelligence Platform</p>
             </div>
             <div class="header-actions">
-                <a href="/presentation" target="_blank" class="btn-link" style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe; font-weight: 700;" title="Open Interactive College Presentation Slides">
-                    📊 College Presentation (PPT)
-                </a>
                 <button onclick="openDocModal()" class="btn-link" title="Open Technical Reference Documentation">
                     📖 Technical Reference
                 </button>
