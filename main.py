@@ -35,31 +35,182 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("SQLITE_DB_PATH", "/tmp/reviews.db" if os.environ.get("VERCEL") else os.path.join(BASE_DIR, "reviews.db"))
 
-def init_sqlite_db():
+def get_db_path() -> str:
+    env_path = os.environ.get("SQLITE_DB_PATH")
+    if env_path:
+        return os.path.abspath(env_path)
+    if os.environ.get("VERCEL"):
+        return "/tmp/reviews.db"
+    return os.path.abspath(os.path.join(BASE_DIR, "reviews.db"))
+
+DB_PATH = get_db_path()
+
+def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
+    target_path = db_path or get_db_path()
+    conn = sqlite3.connect(target_path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_sqlite_db(db_path: Optional[str] = None):
+    target_path = db_path or get_db_path()
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS reviews_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                review TEXT NOT NULL,
-                sentiment TEXT NOT NULL,
-                confidence REAL NOT NULL,
-                categories TEXT NOT NULL,
-                priority TEXT NOT NULL,
-                vader_compound REAL NOT NULL,
-                subjectivity REAL NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit()
-        conn.close()
+        dir_name = os.path.dirname(target_path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
+        with sqlite3.connect(target_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reviews_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    review TEXT NOT NULL,
+                    sentiment TEXT NOT NULL,
+                    confidence REAL NOT NULL,
+                    categories TEXT NOT NULL,
+                    priority TEXT NOT NULL,
+                    vader_compound REAL NOT NULL,
+                    subjectivity REAL NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    vader_pos REAL DEFAULT 0.0,
+                    vader_neg REAL DEFAULT 0.0,
+                    vader_neu REAL DEFAULT 0.0,
+                    source TEXT DEFAULT 'single'
+                )
+            """)
+            conn.commit()
+
+            cursor.execute("PRAGMA table_info(reviews_history)")
+            existing_cols = {row[1] for row in cursor.fetchall()}
+            columns_to_add = [
+                ("vader_pos", "REAL DEFAULT 0.0"),
+                ("vader_neg", "REAL DEFAULT 0.0"),
+                ("vader_neu", "REAL DEFAULT 0.0"),
+                ("source", "TEXT DEFAULT 'single'")
+            ]
+            for col_name, col_def in columns_to_add:
+                if col_name not in existing_cols:
+                    cursor.execute(f"ALTER TABLE reviews_history ADD COLUMN {col_name} {col_def}")
+            conn.commit()
     except Exception as e:
-        print(f"SQLite Init Warning: {e}")
+        logger.warning(f"SQLite Init Warning on '{target_path}': {e}")
 
 init_sqlite_db()
+
+
+def save_review_to_history(
+    review_text: str,
+    sentiment: str,
+    confidence: float,
+    categories: Any,
+    priority: str,
+    vader_compound: float,
+    vader_scores: Optional[dict] = None,
+    subjectivity: float = 0.0,
+    source: str = "single",
+    db_path: Optional[str] = None
+) -> Optional[int]:
+    """
+    Persist an analyzed review into SQLite history with duplicate suppression.
+    """
+    clean_text = review_text.strip() if review_text else ""
+    if not clean_text:
+        return None
+
+    target_path = db_path or get_db_path()
+    try:
+        with sqlite3.connect(target_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # Prevent duplicate insertion if identical review was saved as immediate latest record
+            cur.execute("""
+                SELECT id, review, created_at FROM reviews_history
+                WHERE review = ?
+                ORDER BY id DESC LIMIT 1
+            """, (clean_text,))
+            last_entry = cur.fetchone()
+            if last_entry:
+                logger.info(f"Duplicate review detected; skipping re-insertion (matches record #{last_entry['id']})")
+                return last_entry["id"]
+
+            v_pos = vader_scores.get("pos", 0.0) if vader_scores else 0.0
+            v_neg = vader_scores.get("neg", 0.0) if vader_scores else 0.0
+            v_neu = vader_scores.get("neu", 0.0) if vader_scores else 0.0
+
+            cat_str = ", ".join(categories) if isinstance(categories, list) else str(categories or "General")
+
+            cur.execute("""
+                INSERT INTO reviews_history (
+                    review, sentiment, confidence, categories, priority,
+                    vader_compound, subjectivity, vader_pos, vader_neg, vader_neu, source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                clean_text,
+                sentiment,
+                float(confidence or 0.0),
+                cat_str,
+                priority or "Low",
+                float(vader_compound or 0.0),
+                float(subjectivity or 0.0),
+                float(v_pos or 0.0),
+                float(v_neg or 0.0),
+                float(v_neu or 0.0),
+                source
+            ))
+            conn.commit()
+            return cur.lastrowid
+    except Exception as e:
+        logger.error(f"Error persisting review to history: {e}", exc_info=True)
+        return None
+
+
+def save_batch_reviews_to_history(
+    results: List[dict],
+    source: str = "batch_paste",
+    db_path: Optional[str] = None
+) -> int:
+    """
+    Persist multiple analyzed reviews into SQLite history in a single transaction.
+    """
+    if not results:
+        return 0
+
+    target_path = db_path or get_db_path()
+    inserted_count = 0
+    try:
+        with sqlite3.connect(target_path) as conn:
+            cur = conn.cursor()
+            for r in results:
+                raw_text = r.get("original_review", "").strip()
+                if not raw_text:
+                    continue
+                v_scores = r.get("vader_scores", {})
+                v_comp = v_scores.get("compound_score", 0.0)
+                v_pos = v_scores.get("pos", 0.0)
+                v_neg = v_scores.get("neg", 0.0)
+                v_neu = v_scores.get("neu", 0.0)
+                tb = r.get("textblob_metrics", {})
+                subj = tb.get("subjectivity", 0.0)
+                conf = r.get("confidence_percentage", 0.0)
+                cats = ", ".join(r.get("categories", [])) if isinstance(r.get("categories"), list) else "General"
+                prio = r.get("priority", "Low")
+                sent = r.get("sentiment", "Neutral")
+
+                cur.execute("""
+                    INSERT INTO reviews_history (
+                        review, sentiment, confidence, categories, priority,
+                        vader_compound, subjectivity, vader_pos, vader_neg, vader_neu, source
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    raw_text, sent, float(conf), cats, prio,
+                    float(v_comp), float(subj), float(v_pos), float(v_neg), float(v_neu), source
+                ))
+                inserted_count += 1
+            conn.commit()
+            logger.info(f"Persisted {inserted_count} batch reviews into SQLite history (source='{source}')")
+    except Exception as e:
+        logger.error(f"Error persisting batch reviews to history: {e}", exc_info=True)
+    return inserted_count
 
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 try:
@@ -118,25 +269,17 @@ def analyze_single_review(payload: SingleReviewRequest):
     threshold = payload.threshold if payload.threshold is not None else 0.05
     result = complete_review_analysis(text, threshold, vectorizer, lr_model, nb_model)
     
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO reviews_history (review, sentiment, confidence, categories, priority, vader_compound, subjectivity)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            text,
-            result["sentiment"],
-            result["confidence_percentage"],
-            ", ".join(result["categories"]),
-            result["priority"],
-            result["vader_scores"]["compound_score"],
-            result["textblob_metrics"]["subjectivity"]
-        ))
-        conn.commit()
-        conn.close()
-    except Exception as db_err:
-        print(f"DB Error: {db_err}")
+    save_review_to_history(
+        review_text=text,
+        sentiment=result["sentiment"],
+        confidence=result.get("confidence_percentage", 0.0),
+        categories=result.get("categories", []),
+        priority=result.get("priority", "Low"),
+        vader_compound=result.get("vader_scores", {}).get("compound_score", 0.0),
+        vader_scores=result.get("vader_scores"),
+        subjectivity=result.get("textblob_metrics", {}).get("subjectivity", 0.0),
+        source="single"
+    )
         
     return result
 
@@ -257,6 +400,9 @@ def analyze_batch_reviews(payload: BatchReviewRequest):
         "processing_mode": payload.mode or "auto",
         "preview": results[0]["original_review"][:100] + "..." if results else ""
     }
+
+    # Persist analyzed batch reviews to SQLite history
+    save_batch_reviews_to_history(results, source="batch_paste")
 
     return {
         "total_reviews": total,
@@ -445,27 +591,8 @@ def upload_document_endpoint(
         "failed_records": failed_records
     }
 
-    # Store a sample of analyzed batch reviews into SQLite history
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        for r in results[:20]:
-            cur.execute("""
-                INSERT INTO reviews_history (review, sentiment, confidence, categories, priority, vader_compound, subjectivity)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                r["original_review"][:500],
-                r["sentiment"],
-                r["confidence_percentage"],
-                ", ".join(r["categories"]),
-                r["priority"],
-                r["vader_scores"]["compound_score"],
-                r["textblob_metrics"]["subjectivity"]
-            ))
-        conn.commit()
-        conn.close()
-    except Exception as db_err:
-        print(f"DB Batch Insert Warning: {db_err}")
+    # Store analyzed document reviews into SQLite history
+    save_batch_reviews_to_history(results, source="document_upload")
 
     return {
         "total_reviews": total,
@@ -567,23 +694,71 @@ def export_batch_pdf(data: Dict[str, Any]):
 @app.get("/api/export-history-csv")
 @app.get("/export-history-csv")
 def export_history_csv():
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT id, review, sentiment, confidence, categories, priority, vader_compound, subjectivity, created_at FROM reviews_history ORDER BY id DESC")
-    rows = cur.fetchall()
-    conn.close()
+    target_path = get_db_path()
+    try:
+        with sqlite3.connect(target_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, review, sentiment, confidence, categories, priority,
+                       vader_compound,
+                       COALESCE(vader_pos, 0.0) as vader_pos,
+                       COALESCE(vader_neg, 0.0) as vader_neg,
+                       COALESCE(vader_neu, 0.0) as vader_neu,
+                       subjectivity, created_at,
+                       COALESCE(source, 'single') as source
+                FROM reviews_history 
+                ORDER BY id DESC
+            """)
+            rows = cur.fetchall()
+    except Exception as e:
+        logger.error(f"Error reading history for CSV export from '{target_path}': {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Database error reading history: {str(e)}")
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="No historical records found to export.")
 
     output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["ID", "Review", "Sentiment", "Confidence (%)", "Categories", "Priority", "VADER Compound", "Subjectivity", "Timestamp"])
-    for row in rows:
-        writer.writerow(row)
-        
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow([
+        "ID", "Review Text", "Final Sentiment", "Model Confidence (%)",
+        "Aspect Categories", "Priority", "VADER Compound", "VADER Positive",
+        "VADER Negative", "VADER Neutral", "TextBlob Subjectivity",
+        "Timestamp", "Analysis Source"
+    ])
+    for r in rows:
+        conf_str = f"{r['confidence']:.1f}" if isinstance(r['confidence'], (int, float)) else str(r['confidence'])
+        comp_str = f"{r['vader_compound']:.4f}" if isinstance(r['vader_compound'], (int, float)) else str(r['vader_compound'])
+        pos_str = f"{r['vader_pos']:.4f}" if isinstance(r['vader_pos'], (int, float)) else str(r['vader_pos'])
+        neg_str = f"{r['vader_neg']:.4f}" if isinstance(r['vader_neg'], (int, float)) else str(r['vader_neg'])
+        neu_str = f"{r['vader_neu']:.4f}" if isinstance(r['vader_neu'], (int, float)) else str(r['vader_neu'])
+        subj_str = f"{r['subjectivity']:.4f}" if isinstance(r['subjectivity'], (int, float)) else str(r['subjectivity'])
+        writer.writerow([
+            r["id"],
+            r["review"],
+            r["sentiment"],
+            conf_str,
+            r["categories"],
+            r["priority"],
+            comp_str,
+            pos_str,
+            neg_str,
+            neu_str,
+            subj_str,
+            r["created_at"],
+            r["source"]
+        ])
+
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"historical_sentiment_{timestamp_str}.csv"
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue().encode("utf-8")]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=review_analysis_history.csv"}
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
     )
 
 
@@ -595,14 +770,63 @@ def get_evaluation_metrics():
 
 @app.get("/api/history")
 @app.get("/history")
-def get_analysis_history(limit: int = 15):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM reviews_history ORDER BY id DESC LIMIT ?", (limit,))
-    rows = [dict(row) for row in cur.fetchall()]
-    conn.close()
-    return {"count": len(rows), "history": rows}
+def get_analysis_history(limit: int = 15, offset: int = 0):
+    """
+    Retrieve historical sentiment analysis records ordered by newest first.
+    Includes sentiment counts and summary statistics for charts.
+    """
+    target_path = get_db_path()
+    try:
+        with sqlite3.connect(target_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # Total records count
+            cur.execute("SELECT COUNT(*) FROM reviews_history")
+            total_records = cur.fetchone()[0]
+
+            # Fetch recent records ordered by newest first
+            cur.execute("""
+                SELECT id, review, sentiment, confidence, categories, priority,
+                       vader_compound, subjectivity, created_at,
+                       COALESCE(vader_pos, 0.0) as vader_pos,
+                       COALESCE(vader_neg, 0.0) as vader_neg,
+                       COALESCE(vader_neu, 0.0) as vader_neu,
+                       COALESCE(source, 'single') as source
+                FROM reviews_history 
+                ORDER BY id DESC 
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+            rows = [dict(row) for row in cur.fetchall()]
+
+            # Sentiment distribution counts across all history
+            cur.execute("""
+                SELECT sentiment, COUNT(*) as cnt 
+                FROM reviews_history 
+                GROUP BY sentiment
+            """)
+            sentiment_counts = {"Positive": 0, "Negative": 0, "Neutral": 0}
+            for row in cur.fetchall():
+                sent = row[0]
+                if sent in sentiment_counts:
+                    sentiment_counts[sent] = row[1]
+
+            # Average compound score
+            cur.execute("SELECT AVG(vader_compound) FROM reviews_history")
+            avg_comp_val = cur.fetchone()[0]
+            avg_compound = round(avg_comp_val, 4) if avg_comp_val is not None else 0.0
+
+            return {
+                "status": "success",
+                "total_count": total_records,
+                "count": len(rows),
+                "history": rows,
+                "sentiment_summary": sentiment_counts,
+                "average_compound": avg_compound
+            }
+    except Exception as e:
+        logger.error(f"Error querying history from '{target_path}': {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Database error querying history: {str(e)}")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1731,17 +1955,47 @@ def get_interactive_dashboard():
         </div>
 
         <!-- History Trends -->
-        <div class="card">
+        <div class="card" id="historicalTrendsCard">
             <h2>
                 <span>📈 Historical Sentiment Trends (Recent Analyses)</span>
-                <div style="display:flex; gap:10px;">
-                    <a href="/api/export-history-csv" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button class="btn-secondary" id="exportHistoryBtn" onclick="exportHistoryCsv()" style="display:inline-flex; align-items:center; gap:4px; font-size:13px; padding:7px 12px;">
                         📥 Export CSV
-                    </a>
-                    <button class="btn-secondary" onclick="loadHistory()">🔄 Refresh History</button>
+                    </button>
+                    <button class="btn-secondary" id="refreshHistoryBtn" onclick="loadHistory(true)" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:7px 12px;">
+                        <span id="refreshHistorySpinner" class="spinner" style="display:none; width:13px; height:13px;"></span>
+                        <span id="refreshHistoryText">🔄 Refresh History</span>
+                    </button>
                 </div>
             </h2>
-            <div style="height: 180px; width: 100%; margin-bottom: 20px;">
+
+            <!-- Sentiment summary counts pills -->
+            <div id="historySummaryPills" style="display:none; gap:10px; margin-bottom:16px; flex-wrap:wrap; font-size:13px;">
+                <span class="info-badge" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0;">
+                    🟢 Positive: <strong id="histPosCount" style="margin-left:4px;">0</strong>
+                </span>
+                <span class="info-badge" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">
+                    🔴 Negative: <strong id="histNegCount" style="margin-left:4px;">0</strong>
+                </span>
+                <span class="info-badge" style="background:#f8fafc; color:#64748b; border:1px solid #e2e8f0;">
+                    ⚪ Neutral: <strong id="histNeuCount" style="margin-left:4px;">0</strong>
+                </span>
+                <span class="info-badge" style="background:#eef2ff; color:#4f46e5; border:1px solid #c7d2fe;">
+                    📊 Total Stored: <strong id="histTotalCount" style="margin-left:4px;">0</strong>
+                </span>
+            </div>
+
+            <!-- Empty State when 0 history records exist -->
+            <div id="historyChartEmptyState" style="display:none; text-align:center; padding:36px 20px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; margin-bottom:20px;">
+                <div style="font-size:26px; margin-bottom:6px;">📈</div>
+                <div style="font-weight:600; color:var(--text-main); font-size:14px;">No Historical Records Found</div>
+                <div style="color:var(--text-muted); font-size:12.5px; margin-top:4px;">
+                    Submit a review in Single Review Analysis or upload a batch document above to track sentiment trends over time.
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div id="historyChartWrapper" style="height: 190px; width: 100%; margin-bottom: 20px;">
                 <canvas id="trendLineChart"></canvas>
             </div>
 
@@ -1749,19 +2003,33 @@ def get_interactive_dashboard():
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th style="width:70px;">ID</th>
                             <th>Review Snippet</th>
-                            <th>Sentiment</th>
-                            <th>Confidence</th>
-                            <th>Compound</th>
-                            <th>Priority</th>
-                            <th>Timestamp</th>
+                            <th style="width:105px;">Sentiment</th>
+                            <th style="width:110px;">Confidence</th>
+                            <th style="width:100px;">Compound</th>
+                            <th style="width:90px;">Priority</th>
+                            <th style="width:145px;">Timestamp</th>
                         </tr>
                     </thead>
                     <tbody id="historyTableBody">
-                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading database records...</td></tr>
+                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding:16px;">Loading database records...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Review Details Modal -->
+        <div id="reviewModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(15,23,42,0.6); backdrop-filter:blur(3px); justify-content:center; align-items:center;">
+            <div style="background:var(--card-bg); border-radius:12px; width:90%; max-width:560px; padding:22px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15); border:1px solid var(--card-border);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--card-border); padding-bottom:10px;">
+                    <h3 id="modalTitle" style="margin:0; font-size:15px; color:var(--primary); font-weight:700;">Review Details</h3>
+                    <button onclick="closeReviewModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); line-height:1;">&times;</button>
+                </div>
+                <div id="modalBody" style="font-size:13.5px; line-height:1.6; max-height:360px; overflow-y:auto; word-break:break-word; margin-bottom:16px;"></div>
+                <div style="text-align:right;">
+                    <button class="btn-primary" onclick="closeReviewModal()" style="padding:6px 16px; font-size:13px;">Close</button>
+                </div>
             </div>
         </div>
 
@@ -2327,6 +2595,7 @@ def get_interactive_dashboard():
                 }
                 currentBatchData = data;
                 renderBatchDashboard(data);
+                loadHistory();
             } catch (err) {
                 if (errAlert) {
                     errAlert.style.display = 'block';
@@ -2378,6 +2647,7 @@ def get_interactive_dashboard():
                 if (!res.ok) throw new Error(data.detail || 'Batch analysis failed');
                 currentBatchData = data;
                 renderBatchDashboard(data);
+                loadHistory();
             } catch (err) {
                 if (errAlert) {
                     errAlert.style.display = 'block';
@@ -2707,68 +2977,248 @@ def get_interactive_dashboard():
             }
         }
 
-        async function loadHistory() {
+        let currentHistoryData = [];
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function exportHistoryCsv() {
+            if (!currentHistoryData || currentHistoryData.length === 0) {
+                alert("No historical records available to export. Please analyze at least one review first.");
+                return;
+            }
+            window.location.href = "/api/export-history-csv";
+        }
+
+        function openReviewModal(id) {
+            const item = currentHistoryData.find(r => r.id === id);
+            if (!item) return;
+            const modal = document.getElementById('reviewModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            let badgeClass = 'badge-neu';
+            if (item.sentiment === 'Positive') badgeClass = 'badge-pos';
+            if (item.sentiment === 'Negative') badgeClass = 'badge-neg';
+
+            title.innerHTML = `Review #${item.id} &nbsp;&bull;&nbsp; <span class="badge ${badgeClass}">${escapeHtml(item.sentiment)}</span>`;
+            
+            const confStr = item.confidence !== undefined && item.confidence !== null ? parseFloat(item.confidence).toFixed(1) + '%' : 'N/A';
+            const compStr = item.vader_compound !== undefined && item.vader_compound !== null ? parseFloat(item.vader_compound).toFixed(4) : '0.0000';
+            const posStr = item.vader_pos !== undefined ? parseFloat(item.vader_pos).toFixed(4) : '0.0000';
+            const negStr = item.vader_neg !== undefined ? parseFloat(item.vader_neg).toFixed(4) : '0.0000';
+            const neuStr = item.vader_neu !== undefined ? parseFloat(item.vader_neu).toFixed(4) : '0.0000';
+            const subjStr = item.subjectivity !== undefined ? parseFloat(item.subjectivity).toFixed(4) : '0.0000';
+
+            body.innerHTML = `
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:14px; font-size:13.5px; white-space:pre-wrap; max-height:180px; overflow-y:auto;">${escapeHtml(item.review)}</div>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; font-size:12.5px;">
+                    <div><strong>VADER Compound:</strong> <span style="font-family:monospace;">${compStr}</span></div>
+                    <div><strong>Model Confidence:</strong> ${confStr}</div>
+                    <div><strong>VADER Positive:</strong> <span style="font-family:monospace;">${posStr}</span></div>
+                    <div><strong>VADER Negative:</strong> <span style="font-family:monospace;">${negStr}</span></div>
+                    <div><strong>VADER Neutral:</strong> <span style="font-family:monospace;">${neuStr}</span></div>
+                    <div><strong>TextBlob Subjectivity:</strong> <span style="font-family:monospace;">${subjStr}</span></div>
+                    <div><strong>Priority Level:</strong> ${escapeHtml(item.priority || 'Low')}</div>
+                    <div><strong>Aspect Categories:</strong> ${escapeHtml(item.categories || 'General')}</div>
+                    <div><strong>Analysis Source:</strong> ${escapeHtml(item.source || 'single')}</div>
+                    <div><strong>Analyzed At:</strong> ${escapeHtml(item.created_at || 'Just now')}</div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function closeReviewModal() {
+            const modal = document.getElementById('reviewModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside box
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('reviewModal');
+            if (modal && e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        async function loadHistory(isManualRefresh = false) {
+            const tbody = document.getElementById('historyTableBody');
+            const refreshBtn = document.getElementById('refreshHistoryBtn');
+            const refreshSpinner = document.getElementById('refreshHistorySpinner');
+            const refreshText = document.getElementById('refreshHistoryText');
+            const chartWrapper = document.getElementById('historyChartWrapper');
+            const chartEmptyState = document.getElementById('historyChartEmptyState');
+            const summaryPills = document.getElementById('historySummaryPills');
+
+            if (isManualRefresh && refreshBtn) {
+                if (refreshSpinner) refreshSpinner.style.display = 'inline-block';
+                if (refreshText) refreshText.innerText = 'Refreshing...';
+                refreshBtn.disabled = true;
+            }
+
             try {
                 const res = await fetch('/api/history?limit=15');
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || `Server returned error (${res.status})`);
+                }
                 const data = await res.json();
-                const tbody = document.getElementById('historyTableBody');
+                const records = data.history || [];
+                currentHistoryData = records;
 
-                if (!data.history || !data.history.length) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No records found.</td></tr>';
+                if (!records.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:22px; color:var(--text-muted); font-size:13.5px;">No records found. Submit a review above to start tracking history.</td></tr>';
+                    if (chartWrapper) chartWrapper.style.display = 'none';
+                    if (summaryPills) summaryPills.style.display = 'none';
+                    if (chartEmptyState) chartEmptyState.style.display = 'block';
                     return;
                 }
 
-                tbody.innerHTML = data.history.map(row => {
+                if (chartWrapper) chartWrapper.style.display = 'block';
+                if (summaryPills) summaryPills.style.display = 'flex';
+                if (chartEmptyState) chartEmptyState.style.display = 'none';
+
+                // Populate summary counts
+                const summary = data.sentiment_summary || {};
+                const posEl = document.getElementById('histPosCount');
+                const negEl = document.getElementById('histNegCount');
+                const neuEl = document.getElementById('histNeuCount');
+                const totEl = document.getElementById('histTotalCount');
+                if (posEl) posEl.innerText = summary.Positive || 0;
+                if (negEl) negEl.innerText = summary.Negative || 0;
+                if (neuEl) neuEl.innerText = summary.Neutral || 0;
+                if (totEl) totEl.innerText = data.total_count || records.length;
+
+                // Populate table rows
+                tbody.innerHTML = records.map(row => {
                     let badgeClass = 'badge-neu';
                     if (row.sentiment === 'Positive') badgeClass = 'badge-pos';
                     if (row.sentiment === 'Negative') badgeClass = 'badge-neg';
 
-                    const snippet = row.review.length > 55 ? (row.review.substring(0, 52) + '...') : row.review;
+                    const rawReview = String(row.review || '');
+                    const isLong = rawReview.length > 55;
+                    const snippet = isLong ? (rawReview.substring(0, 52) + '...') : rawReview;
+                    const safeSnippet = escapeHtml(snippet);
+                    const safeReview = escapeHtml(rawReview);
+
+                    const viewFullBtn = isLong ? `<button onclick="openReviewModal(${row.id})" style="font-size:11px; margin-left:6px; cursor:pointer; color:var(--primary); background:none; border:none; text-decoration:underline; font-weight:600;">View Full</button>` : '';
+
+                    const confVal = row.confidence !== undefined && row.confidence !== null ? (parseFloat(row.confidence) > 0 ? parseFloat(row.confidence).toFixed(1) + '%' : 'N/A') : 'N/A';
+                    const compVal = row.vader_compound !== undefined && row.vader_compound !== null ? parseFloat(row.vader_compound).toFixed(4) : '0.0000';
+
+                    let prioColor = '#059669';
+                    if (row.priority === 'High') prioColor = '#dc2626';
+                    else if (row.priority === 'Medium') prioColor = '#d97706';
+
                     return `
                         <tr>
-                            <td>#${row.id}</td>
-                            <td title="${row.review.replace(/"/g, '&quot;')}">${snippet}</td>
+                            <td style="font-weight:600; font-family:monospace;">#${row.id}</td>
+                            <td>
+                                <span title="${safeReview}">${safeSnippet}</span>
+                                ${viewFullBtn}
+                            </td>
                             <td><span class="badge ${badgeClass}">${row.sentiment}</span></td>
-                            <td>${row.confidence}%</td>
-                            <td>${row.vader_compound}</td>
-                            <td><span style="font-weight:600; color:${row.priority === 'High' ? '#dc2626' : (row.priority === 'Medium' ? '#d97706' : '#059669')}">${row.priority}</span></td>
-                            <td style="font-size:11.5px; color:var(--text-muted);">${row.created_at || 'Just now'}</td>
+                            <td style="font-size:12.5px;">${confVal}</td>
+                            <td style="font-family:monospace; font-size:12px;">${compVal}</td>
+                            <td><span style="font-weight:600; color:${prioColor}; font-size:12px;">${escapeHtml(row.priority || 'Low')}</span></td>
+                            <td style="font-size:11.5px; color:var(--text-muted);">${escapeHtml(row.created_at || 'Just now')}</td>
                         </tr>
                     `;
                 }).join('');
 
-                renderTrendChart(data.history);
+                renderTrendChart(records);
             } catch (err) {
-                console.error(err);
+                console.error('Failed to load history:', err);
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:18px; color:#dc2626; font-size:13px;">
+                    ⚠️ Failed to retrieve historical records: ${escapeHtml(err.message)}
+                    <br><button class="btn-secondary" style="margin-top:8px; font-size:12px; padding:4px 10px;" onclick="loadHistory()">🔄 Retry</button>
+                </td></tr>`;
+                if (chartWrapper) chartWrapper.style.display = 'none';
+                if (summaryPills) summaryPills.style.display = 'none';
+                if (chartEmptyState) chartEmptyState.style.display = 'block';
+            } finally {
+                if (isManualRefresh && refreshBtn) {
+                    if (refreshSpinner) refreshSpinner.style.display = 'none';
+                    if (refreshText) refreshText.innerText = '🔄 Refresh History';
+                    refreshBtn.disabled = false;
+                }
             }
         }
 
         function renderTrendChart(history) {
-            const ctx = document.getElementById('trendLineChart').getContext('2d');
-            if (trendChartInstance) trendChartInstance.destroy();
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js library is not loaded. Skipping historical trend chart rendering.');
+                return;
+            }
+            const canvas = document.getElementById('trendLineChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
+                trendChartInstance = null;
+            }
 
             const rev = [...history].reverse();
+            const pointColors = rev.map(r => {
+                if (r.sentiment === 'Positive') return '#16a34a';
+                if (r.sentiment === 'Negative') return '#dc2626';
+                return '#64748b';
+            });
+
             trendChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: rev.map((r, i) => `#${r.id}`),
+                    labels: rev.map(r => `#${r.id}`),
                     datasets: [{
                         label: 'VADER Compound Score',
                         data: rev.map(r => r.vader_compound),
                         borderColor: '#4f46e5',
                         backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: pointColors,
+                        pointRadius: 4.5,
+                        pointHoverRadius: 6.5,
                         tension: 0.35,
-                        fill: true,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        fill: true
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = rev[context.dataIndex];
+                                    return `Compound: ${item.vader_compound} (${item.sentiment})`;
+                                }
+                            }
+                        }
+                    },
                     scales: {
-                        y: { min: -1.0, max: 1.0 }
+                        y: {
+                            min: -1.0,
+                            max: 1.0,
+                            ticks: {
+                                stepSize: 0.5
+                            },
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
                     }
                 }
             });
