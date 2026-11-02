@@ -7,3 +7,10 @@ pydantic
 python-dotenv
 python-multipart
 joblib
+python-docx
+pytest
+httpx
+pypdf
+openpyxl
+xlrd
+reportlab

@@ -44,7 +44,10 @@ The platform is fully deployed and accessible live in your browser:
 - **🤖 Dual Machine Learning Benchmarking:** TF-IDF N-gram feature vectorizer paired with Multinomial Naive Bayes and Logistic Regression, tracked via a 3x3 Confusion Matrix.
 - **🏷️ Aspect-Based Sentiment Analysis (ABSA):** Detects domain-specific nouns (*Quality*, *Shipping*, *Customer Support*, *Pricing*) and extracts keyword clouds.
 - **🎙️ Voice Review Ingestion:** Integrated HTML5 Web Speech API enabling direct microphone voice dictation.
-- **📁 Bulk Batch Processing & CSV Ingest:** Multi-line text analysis and `.csv` / `.txt` dataset uploads with aggregate percentage distribution charts.
+- **📁 Multi-Format Document Ingestion:** Full extraction support for Word (.docx, .doc), PDF (.pdf with multi-page parsing and OCR alert for scanned documents), Excel spreadsheets (.xlsx, .xls), Comma-Separated Values (.csv), and Plain Text (.txt).
+- **📋 Redesigned Dual Workflow Interface:** Distinct Section A (exclusively text-based single review sentiment analysis with explanations) and Section B (Batch Review Analysis & Multi-Format File Upload with Option 1 file upload and Option 2 pasted bulk reviews).
+- **⚡ Multi-Model Consensus Engine:** Resolves sentiment discrepancies between VADER, TextBlob, and supervised ML models, with negation preservation ("not good", "not bad", "not worth the money").
+- **📑 Professional Report Exports:** Instant one-click CSV export (`sentiment_results_YYYYMMDD_HHMMSS.csv`) and paginated PDF report generation via ReportLab (`sentiment_results_YYYYMMDD_HHMMSS.pdf`).
 - **💾 Local Zero-Config Relational Store:** Embedded SQLite database logging historical interactions with one-click CSV report export.
 - **🌐 RESTful Architecture:** Fully typed endpoints powered by FastAPI with auto-generated interactive OpenAPI/Swagger docs (`/docs`).
 
@@ -85,7 +88,9 @@ flowchart TD
 | **Storage & Persistence** | SQLite3 Relational Database, CSV Export Engine |
 | **Frontend UI & Visuals** | HTML5, Modern CSS3 Light Theme, Chart.js, HTML5 Web Speech API |
 | **Deployment & Serverless** | Vercel Serverless Functions, ASGI Python Engine |
-| **Testing & Quality Assurance** | Pytest Test Suite |
+| **Document Parsing & Extraction** | python-docx (Word), pypdf (PDF), openpyxl & xlrd (Excel), csv & io (CSV/TXT) |
+| **PDF & Report Generation** | ReportLab (Paginated executive reports with tables, scorecards, headers & footers) |
+| **Testing & Quality Assurance** | Pytest Test Suite (22 Comprehensive Unit & Integration Tests) |
 
 ---
 
@@ -139,15 +144,32 @@ pytest test_pipeline.py -v
 platform win32 -- Python 3.11.9, pytest-9.2.0, pluggy-1.7.0
 rootdir: A:\semster 5th\Projects\Smart Review Analyzer
 plugins: anyio-4.15.1
-collected 5 items
+collected 22 items
 
-test_pipeline.py::test_preprocessing_tokenization PASSED                 [ 20%]
-test_pipeline.py::test_vader_sentiment_positive PASSED                  [ 40%]
-test_pipeline.py::test_vader_sentiment_negative PASSED                  [ 60%]
-test_pipeline.py::test_textblob_subjectivity PASSED                      [ 80%]
-test_pipeline.py::test_complete_review_analysis PASSED                   [100%]
+test_pipeline.py::test_01_single_positive_sentiment PASSED               [  4%]
+test_pipeline.py::test_02_single_negative_sentiment PASSED               [  9%]
+test_pipeline.py::test_03_single_neutral_sentiment PASSED                [ 13%]
+test_pipeline.py::test_04_negations_handling PASSED                      [ 18%]
+test_pipeline.py::test_05_csv_multiple_reviews_column_detection PASSED   [ 22%]
+test_pipeline.py::test_06_txt_multiple_paragraphs PASSED                 [ 27%]
+test_pipeline.py::test_07_docx_multiple_paragraphs PASSED                [ 31%]
+test_pipeline.py::test_08_docx_table_extraction PASSED                   [ 36%]
+test_pipeline.py::test_09_pdf_multi_page PASSED                          [ 40%]
+test_pipeline.py::test_10_empty_scanned_pdf_error PASSED                 [ 45%]
+test_pipeline.py::test_11_xlsx_multiple_reviews PASSED                   [ 50%]
+test_pipeline.py::test_12_xlsx_column_detection PASSED                   [ 54%]
+test_pipeline.py::test_13_corrupted_or_unsupported_formats PASSED       [ 59%]
+test_pipeline.py::test_14_legacy_document_handling PASSED                [ 63%]
+test_pipeline.py::test_15_long_document_and_size_limits PASSED           [ 68%]
+test_pipeline.py::test_16_mixed_sentiment_in_single_review PASSED        [ 72%]
+test_pipeline.py::test_17_batch_count_and_percentage_calculations PASSED [ 77%]
+test_pipeline.py::test_18_failed_predictions_and_error_reporting PASSED  [ 81%]
+test_pipeline.py::test_19_csv_export_content PASSED                     [ 86%]
+test_pipeline.py::test_20_pdf_export_content PASSED                     [ 90%]
+test_pipeline.py::test_21_frontend_dashboard_structure PASSED           [ 95%]
+test_pipeline.py::test_22_single_review_api_regression PASSED           [100%]
 
-============================== 5 passed in 3.62s ==============================
+======================= 22 passed in 10.58s =======================
 ```
 
 ---
