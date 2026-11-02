@@ -900,7 +900,7 @@ def split_into_reviews(
       - 'paragraph': Forces each non-empty paragraph to be an individual review.
     """
     elements = extracted_data.get("elements", [])
-    full_text = extracted_data.get("extracted_text", "").strip()
+    full_text = (extracted_data.get("extracted_text") or extracted_data.get("text") or "").strip()
 
     if not full_text:
         return []

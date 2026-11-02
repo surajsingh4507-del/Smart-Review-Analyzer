@@ -308,6 +308,7 @@ def analyze_batch_reviews(payload: BatchReviewRequest):
                 text_content = "\n".join(raw_lines)
             extracted = {
                 "text": text_content,
+                "extracted_text": text_content,
                 "paragraphs": raw_lines,
                 "elements": [{"type": "text_block", "text": line, "source_id": f"Line {i+1}"} for i, line in enumerate(raw_lines)],
                 "tables": [],
@@ -752,8 +753,8 @@ def export_history_csv():
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"historical_sentiment_{timestamp_str}.csv"
     output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue().encode("utf-8")]),
+    return Response(
+        content=output.getvalue().encode("utf-8"),
         media_type="text/csv",
         headers={
             "Content-Disposition": f"attachment; filename={filename}",
