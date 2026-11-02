@@ -51,9 +51,27 @@ from main import (
     export_batch_csv,
     export_batch_pdf,
     get_interactive_dashboard,
+    get_analysis_history,
+    export_history_csv,
+    init_sqlite_db,
+    get_db_path,
+    save_review_to_history,
+    save_batch_reviews_to_history,
     SingleReviewRequest,
     BatchReviewRequest
 )
+
+
+@pytest.fixture(autouse=True)
+def isolated_test_db(tmp_path, monkeypatch):
+    """
+    Ensure automated tests execute on an isolated temporary SQLite database
+    so production history records are never overwritten or deleted.
+    """
+    test_db = str(tmp_path / "test_reviews.db")
+    monkeypatch.setenv("SQLITE_DB_PATH", test_db)
+    init_sqlite_db(test_db)
+    yield test_db
 
 
 # ============================================================================
@@ -1073,5 +1091,289 @@ def test_41_diagnostics_when_empty_csv():
         upload_document_endpoint(file=upload, mode="auto", threshold=0.05)
     assert exc_info.value.status_code == 400
     assert "No readable review records could be identified" in exc_info.value.detail
+
+
+# ============================================================================
+# 42. Database Initialization and Schema Migration
+# ============================================================================
+def test_42_database_initialization_and_schema_migration(tmp_path):
+    """
+    Verify SQLite database initializes with all required columns,
+    and migrations are idempotent (can be run multiple times safely).
+    """
+    import sqlite3
+    db_file = str(tmp_path / "migration_test.db")
+    init_sqlite_db(db_file)
+
+    with sqlite3.connect(db_file) as conn:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(reviews_history)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+    expected_cols = {
+        "id", "review", "sentiment", "confidence", "categories", "priority",
+        "vader_compound", "subjectivity", "created_at", "vader_pos", "vader_neg", "vader_neu", "source"
+    }
+    assert expected_cols.issubset(columns)
+
+    # Re-running init must not fail and must preserve schema
+    init_sqlite_db(db_file)
+    with sqlite3.connect(db_file) as conn:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(reviews_history)")
+        cols_after = {row[1] for row in cursor.fetchall()}
+    assert cols_after == columns
+
+
+# ============================================================================
+# 43. Saving Single-Review Analysis and Duplicate Suppression
+# ============================================================================
+def test_43_save_single_review_analysis_and_duplicate_suppression():
+    """
+    Verify Single Review analysis persists result to SQLite,
+    and repeated identical submissions within a short window do not create duplicates.
+    """
+    import sqlite3
+    review_text = "The screen resolution is outstanding and vibrant."
+    req = SingleReviewRequest(review=review_text, threshold=0.05)
+
+    # 1. First submission
+    res1 = analyze_single_review(req)
+    assert res1["sentiment"] == "Positive"
+
+    history_resp = get_analysis_history(limit=10)
+    assert history_resp["count"] == 1
+    assert history_resp["history"][0]["review"] == review_text
+    assert history_resp["history"][0]["sentiment"] == "Positive"
+    assert history_resp["history"][0]["source"] == "single"
+
+    # 2. Accidental immediate duplicate submission
+    res2 = analyze_single_review(req)
+    assert res2["sentiment"] == "Positive"
+
+    # Count must remain 1 because duplicate was suppressed
+    history_resp2 = get_analysis_history(limit=10)
+    assert history_resp2["count"] == 1
+
+
+# ============================================================================
+# 44. Retrieving Saved History (Newest First)
+# ============================================================================
+def test_44_retrieving_saved_history_newest_first():
+    """
+    Ensure history records are ordered by timestamp/ID newest first.
+    """
+    reviews = [
+        "First product review: works adequately.",
+        "Second review: poor quality and broke quickly.",
+        "Third review: exceptional performance and great build."
+    ]
+    for r in reviews:
+        analyze_single_review(SingleReviewRequest(review=r, threshold=0.05))
+
+    resp = get_analysis_history(limit=10)
+    assert resp["count"] == 3
+    items = resp["history"]
+    # Verify newest first: ID should descend
+    assert items[0]["id"] > items[1]["id"] > items[2]["id"]
+    assert items[0]["review"] == reviews[2]
+    assert items[2]["review"] == reviews[0]
+
+
+# ============================================================================
+# 45. Saving Batch Analysis Results (Pasted and Upload)
+# ============================================================================
+def test_45_saving_batch_analysis_results_pasted_and_upload():
+    """
+    Ensure batch analysis from both pasted reviews and document upload
+    persist records to SQLite history with proper source markers.
+    """
+    # 45a. Batch pasted reviews
+    pasted_text = "1. Great camera.\n2. Terrible speaker volume."
+    analyze_batch_reviews(BatchReviewRequest(text=pasted_text, mode="multiple"))
+
+    resp1 = get_analysis_history(limit=10)
+    assert resp1["count"] == 2
+    sources = [r["source"] for r in resp1["history"]]
+    assert all(s == "batch_paste" for s in sources)
+
+    # 45b. Batch document upload
+    csv_bytes = "review\n\"Solid build quality and fast charging.\"\n".encode("utf-8")
+    upload = UploadFile(filename="test_upload.csv", file=io.BytesIO(csv_bytes))
+    upload_document_endpoint(file=upload, mode="auto")
+
+    resp2 = get_analysis_history(limit=10)
+    assert resp2["count"] == 3
+    assert resp2["history"][0]["source"] == "document_upload"
+    assert "Solid build" in resp2["history"][0]["review"]
+
+
+# ============================================================================
+# 46. Database Path Resolution and Environment Override
+# ============================================================================
+def test_46_database_path_resolution_and_environment_override(tmp_path, monkeypatch):
+    """
+    Ensure get_db_path() correctly resolves absolute paths,
+    honors SQLITE_DB_PATH environment variable, and falls back gracefully.
+    """
+    custom_db = str(tmp_path / "custom_test.db")
+    monkeypatch.setenv("SQLITE_DB_PATH", custom_db)
+    resolved = get_db_path()
+    assert os.path.isabs(resolved)
+    assert os.path.normpath(resolved) == os.path.normpath(custom_db)
+
+    # Unset environment variable
+    monkeypatch.delenv("SQLITE_DB_PATH", raising=False)
+    default_resolved = get_db_path()
+    assert os.path.isabs(default_resolved)
+    assert default_resolved.endswith("reviews.db")
+
+
+# ============================================================================
+# 47. Empty History Response Structure
+# ============================================================================
+def test_47_empty_history_response_structure():
+    """
+    Empty database must return a valid JSON object with count=0 and empty history list,
+    never throwing a 500 error or exception.
+    """
+    resp = get_analysis_history(limit=15)
+    assert resp["status"] == "success"
+    assert resp["count"] == 0
+    assert resp["total_count"] == 0
+    assert resp["history"] == []
+    assert resp["sentiment_summary"] == {"Positive": 0, "Negative": 0, "Neutral": 0}
+    assert resp["average_compound"] == 0.0
+
+
+# ============================================================================
+# 48. Frontend Historical Table & Review Modal Elements
+# ============================================================================
+def test_48_table_rendering_frontend_elements_and_modal():
+    """
+    Dashboard HTML must contain the required Historical Sentiment Trends container,
+    summary pills, chart empty state, review modal, and refresh/export controls.
+    """
+    html_resp = get_interactive_dashboard()
+    content = html_resp.body.decode("utf-8")
+
+    assert "Historical Sentiment Trends" in content
+    assert "id=\"historicalTrendsCard\"" in content
+    assert "id=\"historyTableBody\"" in content
+    assert "id=\"historySummaryPills\"" in content
+    assert "id=\"historyChartEmptyState\"" in content
+    assert "id=\"historyChartWrapper\"" in content
+    assert "id=\"trendLineChart\"" in content
+    assert "id=\"refreshHistoryBtn\"" in content
+    assert "id=\"exportHistoryBtn\"" in content
+    assert "id=\"reviewModal\"" in content
+    assert "openReviewModal" in content
+    assert "closeReviewModal" in content
+    assert "loadHistory" in content
+    assert "renderTrendChart" in content
+
+
+# ============================================================================
+# 49. Historical Chart Configuration & Undefined Chart Resilience
+# ============================================================================
+def test_49_historical_chart_configuration_and_resilience():
+    """
+    Chart rendering script must safely guard against undefined Chart.js,
+    destroy prior chart instances cleanly, and provide sentiment point coloring.
+    """
+    html_resp = get_interactive_dashboard()
+    content = html_resp.body.decode("utf-8")
+
+    # Guard check for offline or unblocked Chart.js
+    assert "typeof Chart === 'undefined'" in content
+    # Destroy old instance before recreating
+    assert "trendChartInstance.destroy()" in content
+    # Point color assignment according to sentiment
+    assert "#16a34a" in content  # positive green
+    assert "#dc2626" in content  # negative red
+
+
+# ============================================================================
+# 50. Refresh History Functionality and Limit/Offset Parameters
+# ============================================================================
+def test_50_refresh_history_functionality():
+    """
+    Verify get_analysis_history supports limit and offset parameters
+    for efficient pagination and refresh cycles.
+    """
+    for i in range(12):
+        analyze_single_review(SingleReviewRequest(review=f"Review sample number {i+1} for testing.", threshold=0.05))
+
+    # Test limit = 5
+    page1 = get_analysis_history(limit=5, offset=0)
+    assert page1["total_count"] == 12
+    assert page1["count"] == 5
+
+    # Test limit = 5, offset = 5
+    page2 = get_analysis_history(limit=5, offset=5)
+    assert page2["total_count"] == 12
+    assert page2["count"] == 5
+    assert page1["history"][0]["id"] != page2["history"][0]["id"]
+
+
+# ============================================================================
+# 51. Historical CSV Export Content and Headers
+# ============================================================================
+def test_51_historical_csv_export_content_and_headers():
+    """
+    Ensure Export CSV generates standard CSV with all required columns,
+    meaningful filename, and returns 404 if no records exist.
+    """
+    # 51a. Empty DB returns 404
+    with pytest.raises(HTTPException) as exc:
+        export_history_csv()
+    assert exc.value.status_code == 404
+    assert "No historical records" in exc.value.detail
+
+    # 51b. Add records and verify exported content
+    analyze_single_review(SingleReviewRequest(review="Great device with 128 GB storage.", threshold=0.05))
+    resp = export_history_csv()
+    assert resp.media_type == "text/csv"
+    assert "historical_sentiment_" in resp.headers["Content-Disposition"]
+
+    content = resp.body.decode("utf-8")
+    lines = content.strip().split("\r\n")
+    assert len(lines) >= 2
+    header = lines[0].split(",")
+    assert "ID" in header
+    assert "Review Text" in header
+    assert "Final Sentiment" in header
+    assert "VADER Compound" in header
+    assert "Timestamp" in header
+    assert "Analysis Source" in header
+    assert "Great device with 128 GB storage." in content
+
+
+# ============================================================================
+# 52. Database Persistence Across Application Restarts
+# ============================================================================
+def test_52_database_persistence_across_simulated_restarts(tmp_path, monkeypatch):
+    """
+    Verify records written to SQLite database persist across restarts
+    when connections are closed and re-initialized.
+    """
+    persisted_db = str(tmp_path / "persistent_reviews.db")
+    monkeypatch.setenv("SQLITE_DB_PATH", persisted_db)
+    init_sqlite_db(persisted_db)
+
+    # 1. First run: insert a review
+    analyze_single_review(SingleReviewRequest(review="Battery life is phenomenal and lasts all day.", threshold=0.05))
+    h1 = get_analysis_history(limit=5)
+    assert h1["count"] == 1
+    inserted_id = h1["history"][0]["id"]
+
+    # 2. Simulate application restart: re-run init_sqlite_db
+    init_sqlite_db(persisted_db)
+
+    # 3. Read back records: record must still be intact with identical ID and data
+    h2 = get_analysis_history(limit=5)
+    assert h2["count"] == 1
+    assert h2["history"][0]["id"] == inserted_id
+    assert "phenomenal" in h2["history"][0]["review"]
 
 
