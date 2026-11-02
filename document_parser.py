@@ -16,11 +16,21 @@ MAX_REVIEWS_LIMIT = 500  # Configured limit to protect server
 SUPPORTED_EXTENSIONS = {".csv", ".txt", ".pdf", ".docx", ".doc", ".xlsx", ".xls"}
 
 # Keywords to detect review text columns in tabular data (CSV / Excel)
-REVIEW_COLUMN_KEYWORDS = [
-    "review", "reviews", "comment", "comments", "feedback",
+PRIMARY_REVIEW_KEYWORDS = [
+    "review_text", "review text", "customer_review", "customer review",
+    "reviews", "review", "comment", "comments", "feedback",
     "text", "content", "description", "body", "message",
-    "opinion", "critique", "testimonial", "statement"
+    "opinion", "critique", "testimonial", "statement", "notes"
 ]
+
+METADATA_COLUMN_KEYWORDS = [
+    "id", "review_id", "review id", "no", "num", "number", "index",
+    "code", "date", "time", "timestamp", "rating", "score", "stars",
+    "author", "user", "username", "customer_id", "customer id",
+    "status", "category", "verified", "helpful", "likes", "dislikes"
+]
+
+REVIEW_COLUMN_KEYWORDS = PRIMARY_REVIEW_KEYWORDS
 
 TABLE_HEADER_KEYWORDS = {
     "id", "no", "#", "review", "feedback", "comment", "rating",
@@ -181,6 +191,51 @@ def extract_pdf_content(file_bytes: bytes) -> Dict[str, Any]:
     }
 
 
+def _detect_csv_delimiter(text: str) -> str:
+    """
+    Detects the most plausible CSV delimiter (',', ';', '\t', '|')
+    by checking delimiter frequency consistency across lines.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()][:15]
+    if not lines:
+        return ','
+
+    candidates = [',', ';', '\t', '|']
+    best_delim = ','
+    best_score = -1
+
+    for d in candidates:
+        counts = []
+        for line in lines:
+            try:
+                parsed = list(csv.reader([line], delimiter=d))
+                counts.append(len(parsed[0]) if parsed else 0)
+            except Exception:
+                pass
+        
+        if counts and len(set(counts)) == 1 and counts[0] > 1:
+            score = counts[0] * 100
+            if score > best_score:
+                best_score = score
+                best_delim = d
+        elif counts and min(counts) > 1:
+            score = min(counts) * 10
+            if score > best_score:
+                best_score = score
+                best_delim = d
+
+    if best_score > 0:
+        return best_delim
+
+    try:
+        sample = text[:4096]
+        sniffer = csv.Sniffer()
+        dialect = sniffer.sniff(sample, delimiters=',;\t|')
+        return dialect.delimiter
+    except Exception:
+        return ','
+
+
 def _find_best_text_column(
     headers: List[str],
     rows_sample: List[List[Any]],
@@ -188,44 +243,109 @@ def _find_best_text_column(
 ) -> Tuple[int, str, List[str]]:
     """
     Identifies the most suitable review text column in tabular data.
-    Returns (column_index, column_name, candidates_list).
+    - If target_column_name is specified and matches a header, selects it.
+    - If target_column_name does not match, logs a warning and falls back to auto-detection.
+    - Ignores ID, rating, date, and metadata columns.
+    - Uses text heuristics (average string length, word count, punctuation) to score candidate columns.
+    - If multiple plausible columns exist, returns all of them in candidates list while selecting the top one.
+    - Returns (column_index, column_name, candidates_list).
     """
+    num_cols = len(headers) if headers else (len(rows_sample[0]) if rows_sample else 0)
+    if num_cols == 0:
+        return 0, "Column 1", ["Column 1"]
+
+    # 1. Target column name explicitly requested
     if target_column_name and str(target_column_name).strip():
-        t_clean = str(target_column_name).strip().lower().replace("_", " ")
+        t_raw = str(target_column_name).strip().lower()
+        t_norm = re.sub(r'[\s_\-]+', ' ', t_raw)
+        
+        # Exact match
         for idx, col in enumerate(headers):
-            c_clean = str(col or "").strip().lower().replace("_", " ")
-            if t_clean == c_clean or t_clean in c_clean or c_clean in t_clean:
+            c_raw = str(col or "").strip().lower()
+            if t_raw == c_raw:
                 return idx, str(headers[idx]), [str(headers[idx])]
 
-    candidate_indices = []
-    
-    # 1. Check header keyword matches
-    for idx, col in enumerate(headers):
-        col_norm = str(col or "").strip().lower().replace("_", " ").replace("-", " ")
-        if any(kw == col_norm or kw in col_norm for kw in REVIEW_COLUMN_KEYWORDS):
-            candidate_indices.append(idx)
-            
-    if candidate_indices:
-        chosen_idx = candidate_indices[0]
-        chosen_name = str(headers[chosen_idx]) if chosen_idx < len(headers) else f"Column {chosen_idx + 1}"
-        return chosen_idx, chosen_name, [str(headers[i]) for i in candidate_indices]
+        # Normalized match
+        for idx, col in enumerate(headers):
+            c_norm = re.sub(r'[\s_\-]+', ' ', str(col or "").strip().lower())
+            if t_norm == c_norm or t_norm in c_norm or c_norm in t_norm:
+                return idx, str(headers[idx]), [str(headers[idx])]
 
-    # 2. Check sample row data for the longest average text column
+    # 2. Score every column
     col_scores = []
-    num_cols = len(headers) if headers else (len(rows_sample[0]) if rows_sample else 0)
+    plausible_candidates = []
+
     for c_idx in range(num_cols):
+        col_header = str(headers[c_idx] if c_idx < len(headers) else f"Column {c_idx+1}").strip()
+        col_norm = re.sub(r'[\s_\-]+', ' ', col_header.lower())
+
+        # Check if header explicitly matches metadata keywords
+        is_metadata = any(
+            meta == col_norm or col_norm.endswith(" " + meta) or col_norm.startswith(meta + " ") or (" " + meta + " ") in (" " + col_norm + " ")
+            for meta in METADATA_COLUMN_KEYWORDS
+        )
+
+        # Sample row data for this column
         texts = [str(r[c_idx]).strip() for r in rows_sample if c_idx < len(r) and r[c_idx] is not None]
-        avg_len = sum(len(t) for t in texts) / max(len(texts), 1)
-        col_scores.append((avg_len, c_idx))
+        texts = [t for t in texts if t and t.lower() not in {"nan", "null", "none"}]
+        
+        avg_len = sum(len(t) for t in texts) / max(len(texts), 1) if texts else 0.0
+        avg_words = sum(len(t.split()) for t in texts) / max(len(texts), 1) if texts else 0.0
+        
+        all_chars = "".join(texts)
+        alpha_count = sum(1 for ch in all_chars if ch.isalpha())
+        alpha_ratio = alpha_count / max(len(all_chars), 1)
 
-    col_scores.sort(reverse=True)
-    if col_scores and col_scores[0][0] > 5:
-        chosen_idx = col_scores[0][1]
-        chosen_name = str(headers[chosen_idx]) if chosen_idx < len(headers) else f"Column {chosen_idx + 1}"
-        return chosen_idx, chosen_name, [chosen_name]
+        score = 0.0
 
-    # Fallback to column 0
-    return 0, str(headers[0]) if headers else "Column 1", [str(headers[0])] if headers else ["Column 1"]
+        # Header keyword scoring
+        header_matched_primary = False
+        for kw in PRIMARY_REVIEW_KEYWORDS:
+            if kw == col_norm:
+                score += 160.0
+                header_matched_primary = True
+                break
+            elif (" " + kw + " ") in (" " + col_norm + " ") or col_norm.startswith(kw + " ") or col_norm.endswith(" " + kw):
+                score += 100.0
+                header_matched_primary = True
+                break
+            elif kw in col_norm and not is_metadata:
+                score += 60.0
+                header_matched_primary = True
+                break
+
+        if is_metadata:
+            score -= 150.0
+
+        # Data content scoring
+        if avg_words >= 4 and avg_len >= 20 and alpha_ratio >= 0.5:
+            score += avg_len * 1.5 + avg_words * 5.0
+            plausible_candidates.append((score, col_header, c_idx))
+        elif avg_words >= 2 and avg_len >= 8 and alpha_ratio >= 0.4:
+            score += avg_len * 0.8 + avg_words * 2.0
+            if header_matched_primary:
+                plausible_candidates.append((score, col_header, c_idx))
+        elif alpha_ratio < 0.3:
+            score -= 100.0
+
+        col_scores.append((score, avg_len, c_idx, col_header))
+
+    # Sort columns by total score descending
+    col_scores.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    best_c_idx = col_scores[0][2]
+    best_name = col_scores[0][3]
+
+    # Plausible candidates list for user
+    plausible_candidates.sort(key=lambda x: x[0], reverse=True)
+    candidate_names = []
+    for _, name, _ in plausible_candidates:
+        if name not in candidate_names:
+            candidate_names.append(name)
+
+    if not candidate_names:
+        candidate_names = [best_name]
+
+    return best_c_idx, best_name, candidate_names
 
 
 def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = None) -> Dict[str, Any]:
@@ -234,7 +354,7 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
     Properly ignores empty rows and excludes column headers from review records.
     """
     text = None
-    for enc in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+    for enc in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252', 'iso-8859-1']:
         try:
             text = file_bytes.decode(enc)
             break
@@ -248,14 +368,9 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
     warnings = []
 
     try:
-        sample = text[:4096]
-        sniffer = csv.Sniffer()
-        try:
-            dialect = sniffer.sniff(sample, delimiters=',;\t|')
-        except Exception:
-            dialect = csv.excel
-
-        reader = csv.reader(io.StringIO(text), dialect)
+        delimiter = _detect_csv_delimiter(text)
+        reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+        
         # 1. Filter out completely blank or whitespace-only rows
         raw_rows = []
         for r in reader:
@@ -270,21 +385,22 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
         first_row = raw_rows[0]
         has_header = False
         
-        # Check standard sniffer has_header
         try:
+            sample = text[:4096]
+            sniffer = csv.Sniffer()
             has_header = sniffer.has_header(sample)
         except Exception:
             has_header = False
 
         # Keyword match on first row cells
-        first_row_normalized = [c.lower().replace("_", " ").replace("-", " ").strip() for c in first_row]
+        first_row_normalized = [re.sub(r'[\s_\-]+', ' ', c.lower().strip()) for c in first_row]
         if any(
-            any(k in c for k in REVIEW_COLUMN_KEYWORDS) or c in TABLE_HEADER_KEYWORDS
+            any(k in c for k in PRIMARY_REVIEW_KEYWORDS) or c in TABLE_HEADER_KEYWORDS
             for c in first_row_normalized
         ):
             has_header = True
 
-        # Heuristic: if first row cells are short identifier names (< 40 chars, no sentence punctuation)
+        # Heuristic: if first row cells are short identifier names (< 35 chars, no sentence punctuation)
         # while data rows in the same column are longer sentences with spaces and punctuation
         if not has_header and len(raw_rows) > 1:
             for c_idx in range(len(first_row)):
@@ -292,7 +408,7 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
                 cell_len = len(cell_val)
                 sub_lens = [len(r[c_idx]) for r in raw_rows[1:10] if c_idx < len(r)]
                 avg_sub_len = sum(sub_lens) / max(len(sub_lens), 1)
-                if cell_len < 35 and avg_sub_len > 40 and not any(p in cell_val for p in [".", "!", "?"]):
+                if cell_len < 35 and avg_sub_len > 35 and not any(p in cell_val for p in [".", "!", "?"]):
                     has_header = True
                     break
 
@@ -300,11 +416,17 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
         data_rows = raw_rows[1:] if has_header else raw_rows
 
         review_col_idx, review_col_name, candidates = _find_best_text_column(
-            headers, data_rows[:20], target_column_name=target_column_name
+            headers, data_rows[:30], target_column_name=target_column_name
         )
 
+        if target_column_name and review_col_name != target_column_name and target_column_name not in headers:
+            warnings.append(
+                f"Specified column '{target_column_name}' was not found in headers {headers}. "
+                f"Automatically selected '{review_col_name}' instead."
+            )
+
         header_names_lower = {h.strip().lower() for h in headers if h}
-        header_names_normalized = {h.strip().lower().replace("_", " ").replace("-", " ") for h in headers if h}
+        header_names_normalized = {re.sub(r'[\s_\-]+', ' ', h.strip().lower()) for h in headers if h}
         known_header_words = {
             "review", "reviews", "review text", "reviews text", "feedback",
             "comment", "comments", "customer review", "customer reviews",
@@ -314,9 +436,14 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
         for r_idx, row in enumerate(data_rows, start=(2 if has_header else 1)):
             if not row:
                 continue
-            if len(row) > review_col_idx and str(row[review_col_idx]).strip():
-                val = str(row[review_col_idx]).strip()
-                val_norm = val.lower().replace("_", " ").replace("-", " ").strip()
+            if len(row) > review_col_idx:
+                raw_val = row[review_col_idx]
+                if raw_val is None:
+                    continue
+                val = str(raw_val).strip()
+                if not val:
+                    continue
+                val_norm = re.sub(r'[\s_\-]+', ' ', val.lower())
                 
                 # Exclude any cell that is actually a column header name
                 if val_norm in known_header_words or val.strip().lower() in header_names_lower or val_norm in header_names_normalized:
@@ -334,7 +461,10 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
         raise DocumentParsingError(f"CSV format error: {str(e)}")
 
     if not extracted_elements:
-        raise DocumentParsingError("No readable review records could be identified in the CSV file.")
+        raise DocumentParsingError(
+            f"No readable review records could be identified in the CSV file using column '{review_col_name}'. "
+            f"Available columns: {headers}. Please verify review text column."
+        )
 
     return {
         "elements": extracted_elements,
@@ -343,6 +473,7 @@ def extract_csv_content(file_bytes: bytes, target_column_name: Optional[str] = N
         "row_count": len(extracted_elements),
         "review_column_used": review_col_name,
         "column_candidates": candidates,
+        "available_columns": headers,
         "warnings": warnings
     }
 
@@ -715,6 +846,8 @@ def validate_and_extract_document(
         "worksheet_count": sheets,
         "row_count": rows,
         "review_column_used": col_used,
+        "column_candidates": extracted.get("column_candidates", []),
+        "available_columns": extracted.get("available_columns", []),
         "warnings": warnings
     }
 
@@ -806,15 +939,15 @@ def split_into_reviews(
         reviews = []
         for i, el in enumerate(elements, start=1):
             t = _clean_review_prefix(el.get("text", ""))
-            t_norm = t.lower().replace("_", " ").replace("-", " ").strip()
+            t_norm = re.sub(r'[\s_\-]+', ' ', t.lower().strip())
             if t_norm in known_header_words:
                 continue
-            if len(t) > 2:
+            if len(t) >= 2:
                 reviews.append({
                     "id": el.get("source_id", f"Record {len(reviews) + 1}"),
                     "text": t
                 })
-        if len(reviews) > 1 or mode == "multiple":
+        if len(reviews) >= 1 or mode == "multiple":
             return reviews[:max_reviews]
 
     # Check for numbered review items (e.g. '1. ', '2. ', 'Review 1:')

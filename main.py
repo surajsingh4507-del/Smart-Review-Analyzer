@@ -3,6 +3,7 @@ import sqlite3
 import json
 import csv
 import io
+import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
@@ -16,6 +17,8 @@ from nlp_engine import complete_review_analysis, clean_and_tokenize
 from ml_trainer import train_and_evaluate_models
 from document_parser import validate_and_extract_document, split_into_reviews, DocumentParsingError
 from pdf_exporter import generate_batch_pdf_report
+
+logger = logging.getLogger("smart_review_analyzer.main")
 
 app = FastAPI(
     title="Smart Review Analyzer API",
@@ -290,7 +293,17 @@ def upload_document_endpoint(
     Supported formats: .docx, .doc, .pdf, .csv, .xlsx, .xls, .txt.
     Provides complete diagnostics, review segmentation, and multi-model consensus.
     """
+    logger.info(
+        f"File upload received: filename='{file.filename}', mode='{mode}', "
+        f"column_name='{column_name}', threshold={threshold}"
+    )
+
     if hasattr(file, 'file') and hasattr(file.file, 'read'):
+        if hasattr(file.file, 'seek'):
+            try:
+                file.file.seek(0)
+            except Exception:
+                pass
         contents = file.file.read()
     else:
         contents = file.read()
@@ -298,44 +311,76 @@ def upload_document_endpoint(
     try:
         extracted = validate_and_extract_document(file.filename, contents, column_name=column_name)
     except DocumentParsingError as e:
+        logger.error(f"DocumentParsingError on '{file.filename}': {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"Unexpected error extracting document '{file.filename}': {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected error processing document: {str(e)}")
 
     valid_mode = mode if mode in ["auto", "single", "multiple", "paragraph"] else "auto"
     review_items = split_into_reviews(extracted, mode=valid_mode, column_name=column_name)
     
+    ext_diag = extracted.get("diagnostics", {})
+    col_used = ext_diag.get("review_column_used", "N/A")
+    raw_elem_cnt = ext_diag.get("raw_elements_count", 0)
+    char_cnt = ext_diag.get("character_count", 0)
+    avail_cols = ext_diag.get("available_columns", [])
+
+    logger.info(
+        f"Document Extraction: format='{ext_diag.get('file_extension')}', rows/elements={raw_elem_cnt}, "
+        f"detected_columns={avail_cols}, selected_column='{col_used}', extracted_chars={char_cnt}"
+    )
+    logger.info(
+        f"Review Segmentation (mode='{valid_mode}'): identified {len(review_items)} candidate review items"
+    )
+
     if not review_items:
         raise HTTPException(
             status_code=400,
-            detail="No readable review records could be identified in the uploaded document."
+            detail=(
+                f"Review segmentation identified 0 readable reviews in '{file.filename}'. "
+                f"Extracted {char_cnt} characters from column '{col_used}'. "
+                f"Available columns: {avail_cols}. Please verify review text column."
+            )
         )
 
     thresh = threshold if threshold is not None else 0.05
     results = []
     failed_records = 0
+    last_failure_error = None
 
-    for item in review_items:
+    for idx, item in enumerate(review_items, start=1):
         try:
             r_text = item["text"] if isinstance(item, dict) else str(item)
-            source_id = item.get("id", f"#{len(results) + 1}") if isinstance(item, dict) else f"#{len(results) + 1}"
+            source_id = item.get("id", f"#{idx}") if isinstance(item, dict) else f"#{idx}"
             
-            if not r_text.strip():
+            if not r_text or not r_text.strip():
                 failed_records += 1
+                last_failure_error = f"Record #{idx} content was empty"
                 continue
                 
             r_analysis = complete_review_analysis(r_text, thresh, vectorizer, lr_model, nb_model)
             r_analysis["source_id"] = source_id
             results.append(r_analysis)
         except Exception as item_err:
-            print(f"Item analysis warning: {item_err}")
+            logger.warning(f"Item #{idx} sentiment analysis warning: {item_err}")
+            last_failure_error = str(item_err)
             failed_records += 1
 
     total = len(results)
+    logger.info(
+        f"Sentiment Analysis Pipeline: passed={len(review_items)}, "
+        f"successfully_analyzed={total}, failed={failed_records}"
+    )
+
     if total == 0:
         raise HTTPException(
             status_code=400,
-            detail="Document text was extracted, but no valid non-empty review content could be analyzed."
+            detail=(
+                f"Document text was extracted from '{file.filename}' ({len(review_items)} candidate reviews), "
+                f"but sentiment analysis could not process any valid records. "
+                f"Last error: {last_failure_error or 'Empty or unanalyzable content'}"
+            )
         )
 
     pos_count = sum(1 for r in results if r["sentiment"] == "Positive")
@@ -1531,6 +1576,7 @@ def get_interactive_dashboard():
                         <div><strong>Words:</strong> <span id="diagWords">0</span></div>
                         <div><strong>Identified Reviews:</strong> <span id="diagIdentified" style="color: #15803d; font-weight: 700;">0</span></div>
                         <div><strong>Processing Mode:</strong> <span id="diagMode">auto</span></div>
+                        <div><strong>Review Column:</strong> <span id="diagColumn" style="color: #4f46e5; font-weight: 700;">Auto</span></div>
                     </div>
 
                     <div id="diagWarningAlert" style="display:none; margin-top:10px; padding:8px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; color:#b45309; font-size:12px;"></div>
@@ -2362,12 +2408,21 @@ def get_interactive_dashboard():
                 document.getElementById('diagWords').innerText = d.word_count || 'N/A';
                 document.getElementById('diagIdentified').innerText = `${d.reviews_identified || data.total_reviews} reviews`;
                 document.getElementById('diagMode').innerText = d.processing_mode || 'auto';
+                const colEl = document.getElementById('diagColumn');
+                if (colEl) colEl.innerText = d.review_column_used || 'Auto';
                 document.getElementById('diagPreview').innerText = d.preview || 'Processed reviews successfully.';
 
                 const warnAlert = document.getElementById('diagWarningAlert');
+                let notices = [];
                 if (d.warnings && d.warnings.length) {
+                    notices.push(...d.warnings);
+                }
+                if (d.column_candidates && d.column_candidates.length > 1) {
+                    notices.push(`Plausible text columns found: [${d.column_candidates.join(', ')}]. Currently using: <strong>${d.review_column_used}</strong>. To analyze a different column, enter its name in the 'Review Column Name' input above.`);
+                }
+                if (notices.length) {
                     warnAlert.style.display = 'block';
-                    warnAlert.innerHTML = `⚠️ <strong>Notice:</strong> ${d.warnings.join(' | ')}`;
+                    warnAlert.innerHTML = `💡 <strong>Notice:</strong> ${notices.join(' | ')}`;
                 } else {
                     warnAlert.style.display = 'none';
                 }

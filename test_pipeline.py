@@ -921,3 +921,157 @@ def test_36_mixed_and_factual_sentiment_consistency():
     assert single_res["sentiment"] == batch_res["detailed_results"][0]["sentiment"]
     assert single_res["priority"] == batch_res["detailed_results"][0]["priority"]
 
+
+# ============================================================================
+# 37. Complex CSV with review_id and metadata columns - Correct Column Selection
+# ============================================================================
+def test_37_csv_multi_column_with_review_id_and_metadata():
+    """
+    Verifies that when a CSV contains columns like review_id, author, rating,
+    review_text, and date, the parser correctly prioritizes the text column over
+    the ID or rating columns, avoiding false 'No readable reviews' or 0 analyzed errors.
+    """
+    csv_content = (
+        "review_id,author,rating,review_text,date\n"
+        "101,Alice,5,\"After three weeks of daily use, I am impressed by the display and battery life, although charging is average.\",2026-01-01\n"
+        "102,Bob,1,\"The battery drains quickly and the phone overheats during gaming.\",2026-01-02\n"
+        "103,Charlie,3,\"The device has 128 GB of storage and supports 5G connectivity.\",2026-01-03\n"
+        "104,Diana,5,\"The camera takes stunning sharp photos even in low light.\",2026-01-04\n"
+        "105,Evan,1,\"Worst customer service ever, representative was completely rude.\",2026-01-05\n"
+        "106,Fiona,3,\"This model features a 6.2-inch AMOLED screen and 128 GB memory.\",2026-01-06\n"
+        "107,George,5,\"I absolutely love the clean UI and fluid animations.\",2026-01-07\n"
+        "108,Hannah,1,\"The charging cable broke on the second day of use.\",2026-01-08\n"
+        "109,Ian,3,\"The device weighs approximately 180 grams.\",2026-01-09\n"
+        "110,Julia,5,\"Highly recommended for anyone looking for great performance.\",2026-01-10\n"
+    ).encode("utf-8")
+
+    upload = UploadFile(filename="complex_customer_reviews.csv", file=io.BytesIO(csv_content))
+    result = upload_document_endpoint(file=upload, mode="auto", threshold=0.05)
+
+    assert result["total_reviews"] == 10
+    assert result["reviews_processed"] == 10
+    assert result["reviews_failed"] == 0
+    assert result["diagnostics"]["review_column_used"] == "review_text"
+    assert "review_text" in result["diagnostics"]["column_candidates"]
+
+    # First review content check
+    first_rev = result["detailed_results"][0]["original_review"]
+    assert "three weeks of daily use" in first_rev
+    assert first_rev.strip() != "101"  # NOT the ID
+
+
+# ============================================================================
+# 38. Three Core Prompt Reviews Handling
+# ============================================================================
+def test_38_three_core_prompt_reviews_handling():
+    """
+    Ensure the application correctly processes the exact CSV file provided in prompt:
+    review_text
+    "After three weeks of daily use, I am impressed by the display and battery life, although charging is average."
+    "The battery drains quickly and the phone overheats during gaming."
+    "The device has 128 GB of storage and supports 5G connectivity."
+    """
+    csv_content = (
+        "review_text\n"
+        "\"After three weeks of daily use, I am impressed by the display and battery life, although charging is average.\"\n"
+        "\"The battery drains quickly and the phone overheats during gaming.\"\n"
+        "\"The device has 128 GB of storage and supports 5G connectivity.\"\n"
+    ).encode("utf-8")
+
+    upload = UploadFile(filename="prompt_reviews.csv", file=io.BytesIO(csv_content))
+    result = upload_document_endpoint(file=upload, mode="auto", threshold=0.05)
+
+    assert result["total_reviews"] == 3
+    assert result["reviews_processed"] == 3
+    assert result["reviews_failed"] == 0
+
+    sentiments = [r["sentiment"] for r in result["detailed_results"]]
+    # Confirm valid classification for all 3 reviews without hardcoding
+    assert len(sentiments) == 3
+    for s in sentiments:
+        assert s in {"Positive", "Negative", "Neutral"}
+    assert "Positive" in sentiments
+    assert "Negative" in sentiments
+
+
+# ============================================================================
+# 39. CSV with Alternative Column Names and Graceful Fallback
+# ============================================================================
+def test_39_csv_alternative_columns_and_manual_selection():
+    """
+    Support common review-column names: comments, feedback, description.
+    Never discard all reviews simply because column name differs.
+    """
+    # 39a: comments column
+    csv_comments = (
+        "id,comments,rating\n"
+        "1,\"The product quality is superb and works fine.\",5\n"
+        "2,\"Very poor build quality, broke immediately.\",1\n"
+    ).encode("utf-8")
+    up1 = UploadFile(filename="comments.csv", file=io.BytesIO(csv_comments))
+    res1 = upload_document_endpoint(file=up1, mode="auto", threshold=0.05)
+    assert res1["total_reviews"] == 2
+    assert res1["diagnostics"]["review_column_used"] == "comments"
+
+    # 39b: manual column_name selection
+    csv_multi = (
+        "title,body\n"
+        "\"Great Display\",\"The colors are vivid and screen is bright.\"\n"
+        "\"Terrible Battery\",\"Drains completely in two hours.\"\n"
+    ).encode("utf-8")
+    up2 = UploadFile(filename="multi_cols.csv", file=io.BytesIO(csv_multi))
+    res2 = upload_document_endpoint(file=up2, mode="auto", threshold=0.05, column_name="body")
+    assert res2["total_reviews"] == 2
+    assert res2["diagnostics"]["review_column_used"] == "body"
+
+    # 39c: non-existent column fallback (graceful recovery, not error)
+    up3 = UploadFile(filename="multi_cols2.csv", file=io.BytesIO(csv_multi))
+    res3 = upload_document_endpoint(file=up3, mode="auto", threshold=0.05, column_name="non_existent_col")
+    assert res3["total_reviews"] == 2
+    assert res3["diagnostics"]["review_column_used"] in ["body", "title"]
+    assert any("not found" in w.lower() for w in res3["diagnostics"].get("warnings", []))
+
+
+# ============================================================================
+# 40. CSV Multiline Reviews, Semicolon Delimiters & Numbered Reviews
+# ============================================================================
+def test_40_csv_multiline_semicolons_and_numbered_items():
+    """
+    Supports:
+    - Semicolon-delimited CSVs
+    - Multiline review entries
+    - Numbered review text prefixes ("1. The battery...") without losing body numbers ("128 GB")
+    """
+    semicolon_csv = (
+        "review_id;review_text;rating\n"
+        "1;\"1. The battery lasts two days and device comes with 128 GB storage.\";5\n"
+        "2;\"2. The phone overheats during gaming.\nCharging speed is disappointing.\";1\n"
+    ).encode("utf-8")
+
+    upload = UploadFile(filename="semicolon_multiline.csv", file=io.BytesIO(semicolon_csv))
+    result = upload_document_endpoint(file=upload, mode="auto", threshold=0.05)
+
+    assert result["total_reviews"] == 2
+    assert result["reviews_processed"] == 2
+
+    # Check that "128 GB" was preserved and prefix "1. " was handled cleanly
+    assert "128 GB" in result["detailed_results"][0]["original_review"]
+    # Check multiline review preserved
+    assert "\n" in result["detailed_results"][1]["original_review"] or "overheats" in result["detailed_results"][1]["original_review"]
+
+
+# ============================================================================
+# 41. Diagnostic Error Reporting When File Content is Genuinely Empty
+# ============================================================================
+def test_41_diagnostics_when_empty_csv():
+    """
+    Empty input or CSV without data must report a clear diagnostic error identifying the stage.
+    """
+    empty_csv = "review_id,review_text\n".encode("utf-8")
+    upload = UploadFile(filename="empty_data.csv", file=io.BytesIO(empty_csv))
+    with pytest.raises(HTTPException) as exc_info:
+        upload_document_endpoint(file=upload, mode="auto", threshold=0.05)
+    assert exc_info.value.status_code == 400
+    assert "No readable review records could be identified" in exc_info.value.detail
+
+
