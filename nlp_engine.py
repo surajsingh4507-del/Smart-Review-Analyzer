@@ -2,6 +2,9 @@ import re
 import string
 import os
 from typing import Optional, Dict, Any, List
+import logging
+
+logger = logging.getLogger('smart_review_analyzer.nlp')
 
 # 1. Standalone VADER without external nltk downloads
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer

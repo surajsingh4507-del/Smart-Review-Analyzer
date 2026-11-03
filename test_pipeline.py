@@ -1377,3 +1377,45 @@ def test_52_database_persistence_across_simulated_restarts(tmp_path, monkeypatch
     assert "phenomenal" in h2["history"][0]["review"]
 
 
+# ============================================================================
+# 53. Global Exception Handler and Safe JSON Error Responses
+# ============================================================================
+def test_53_nlp_engine_sentence_segmentation_with_logger_fallback(monkeypatch):
+    """
+    Ensure sentence segmentation does not fail with NameError when NLTK
+    sent_tokenize encounters an error or is uninitialized.
+    """
+    import nltk
+    def mock_sent_tokenize(text):
+        raise LookupError("Resource punkt not found")
+
+    monkeypatch.setattr(nltk, "sent_tokenize", mock_sent_tokenize)
+    from nlp_engine import segment_sentences, analyze_paragraph_sentences
+    result = segment_sentences("First sentence. Second sentence! Third sentence?")
+    assert len(result) == 3
+    assert result[0] == "First sentence."
+
+    # Must also succeed through complete paragraph sentence analysis
+    para_res = analyze_paragraph_sentences("Great display. Poor battery.")
+    assert para_res["total_sentences"] == 2
+    assert para_res["valid_sentences"] == 2
+
+
+# ============================================================================
+# 54. Single Review Empty and Unanalyzable Content Resilience
+# ============================================================================
+def test_54_single_review_empty_and_unanalyzable_content_resilience():
+    """
+    Ensure Single Review properly rejects empty content with HTTP 400 JSON detail,
+    and returns valid response without unhandled 500 exceptions.
+    """
+    with pytest.raises(HTTPException) as exc:
+        analyze_single_review(SingleReviewRequest(review="   "))
+    assert exc.value.status_code == 400
+    assert "Review text cannot be empty" in exc.value.detail
+
+    # Valid review
+    valid_res = analyze_single_review(SingleReviewRequest(review="Everything functions properly."))
+    assert valid_res["sentiment"] in {"Positive", "Negative", "Neutral"}
+
+

@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse, Response
+from fastapi.responses import HTMLResponse, StreamingResponse, Response, JSONResponse
 from pydantic import BaseModel
 import joblib
 
@@ -33,6 +33,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -267,19 +275,32 @@ def analyze_single_review(payload: SingleReviewRequest):
         raise HTTPException(status_code=400, detail="Review text cannot be empty.")
     
     threshold = payload.threshold if payload.threshold is not None else 0.05
-    result = complete_review_analysis(text, threshold, vectorizer, lr_model, nb_model)
+    try:
+        result = complete_review_analysis(text, threshold, vectorizer, lr_model, nb_model)
+    except Exception as e:
+        logger.error(f"Error analyzing review sentiment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Sentiment analysis engine error: {str(e)}")
     
-    save_review_to_history(
-        review_text=text,
-        sentiment=result["sentiment"],
-        confidence=result.get("confidence_percentage", 0.0),
-        categories=result.get("categories", []),
-        priority=result.get("priority", "Low"),
-        vader_compound=result.get("vader_scores", {}).get("compound_score", 0.0),
-        vader_scores=result.get("vader_scores"),
-        subjectivity=result.get("textblob_metrics", {}).get("subjectivity", 0.0),
-        source="single"
-    )
+    try:
+        v_scores = result.get("vader_scores") or {}
+        tb_metrics = result.get("textblob_metrics") or {}
+        conf_val = result.get("confidence_percentage")
+        if conf_val is None:
+            conf_val = 0.0
+        
+        save_review_to_history(
+            review_text=text,
+            sentiment=result.get("sentiment", "Neutral"),
+            confidence=float(conf_val),
+            categories=result.get("categories", []),
+            priority=result.get("priority", "Low"),
+            vader_compound=float(v_scores.get("compound_score", 0.0) or 0.0),
+            vader_scores=v_scores,
+            subjectivity=float(tb_metrics.get("subjectivity", 0.0) or 0.0),
+            source="single"
+        )
+    except Exception as db_err:
+        logger.warning(f"History persistence warning (analysis returned successfully): {db_err}")
         
     return result
 
@@ -2338,9 +2359,17 @@ def get_interactive_dashboard():
                     body: JSON.stringify({ review: text, threshold: threshold })
                 });
 
-                const data = await res.json();
+                let data;
+                const contentType = res.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const rawText = await res.text();
+                    throw new Error(rawText || `Server returned error (${res.status})`);
+                }
+
                 if (!res.ok) {
-                    throw new Error(data.detail || 'Analysis failed');
+                    throw new Error(data.detail || `Analysis failed (${res.status})`);
                 }
 
                 renderSingleResults(data);
@@ -2590,9 +2619,16 @@ def get_interactive_dashboard():
 
             try {
                 const res = await fetch(url, { method: 'POST', body: formData });
-                const data = await res.json();
+                let data;
+                const contentType = res.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const rawText = await res.text();
+                    throw new Error(rawText || `Server returned error (${res.status})`);
+                }
                 if (!res.ok) {
-                    throw new Error(data.detail || 'File processing failed');
+                    throw new Error(data.detail || `File processing failed (${res.status})`);
                 }
                 currentBatchData = data;
                 renderBatchDashboard(data);
@@ -2644,8 +2680,15 @@ def get_interactive_dashboard():
                     body: JSON.stringify({ text: raw, threshold: threshold, mode: mode })
                 });
 
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Batch analysis failed');
+                let data;
+                const contentType = res.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const rawText = await res.text();
+                    throw new Error(rawText || `Server returned error (${res.status})`);
+                }
+                if (!res.ok) throw new Error(data.detail || `Batch analysis failed (${res.status})`);
                 currentBatchData = data;
                 renderBatchDashboard(data);
                 loadHistory();
