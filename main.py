@@ -966,13 +966,6 @@ def get_sitemap_xml():
     return Response(content=content, media_type="application/xml; charset=utf-8")
 
 
-@app.get("/", response_class=HTMLResponse)
-@app.get("/api", response_class=HTMLResponse)
-@app.get("/api/", response_class=HTMLResponse)
-@app.get("/api/index", response_class=HTMLResponse)
-@app.get("/api/index/", response_class=HTMLResponse)
-@app.get("/api/index.py", response_class=HTMLResponse)
-@app.get("/index.html", response_class=HTMLResponse)
 @app.post("/api/index.py")
 @app.post("/api/index")
 def api_index_post_handler(payload: Dict[str, Any] = None):
@@ -1001,6 +994,15 @@ def api_index_post_handler(payload: Dict[str, Any] = None):
         status_code=400,
         content={"detail": "Invalid request to /api/index.py. Use /api/analyze for single reviews or /api/analyze-batch for batch analysis."}
     )
+
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
+@app.get("/api/", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
+@app.get("/api/index/", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
 def get_interactive_dashboard():
     logo_src = get_sentiq_logo_uri()
     html_content = """<!DOCTYPE html>
