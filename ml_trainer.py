@@ -3,7 +3,7 @@ import csv
 import joblib
 
 # Comprehensive balanced benchmark dataset for NLP Review Intelligence
-# 45 Positive, 45 Negative, 45 Neutral = 135 balanced review samples
+# 55 Positive, 55 Negative, 55 Neutral = 165 balanced review samples
 DATASET = [
     # Positive (45 samples)
     ("The battery life is phenomenal and screen resolution is gorgeous.", "Positive"),
@@ -51,6 +51,16 @@ DATASET = [
     ("Great value, great quality, and super fast courier delivery.", "Positive"),
     ("Highly dependable gadget, thoroughly satisfied with this purchase.", "Positive"),
     ("Top tier product quality with stellar customer care.", "Positive"),
+    ("Outstanding food quality, delivery arrived in just 20 minutes hot and fresh.", "Positive"),
+    ("Delicious food, hot and fresh, fast delivery in twenty minutes.", "Positive"),
+    ("Super fast delivery, food arrived hot and tasted amazing.", "Positive"),
+    ("The meal was fresh, flavorful, and delivered right on time.", "Positive"),
+    ("Loved the customer service, friendly delivery driver and delicious food.", "Positive"),
+    ("Excellent restaurant service, prompt delivery and piping hot food.", "Positive"),
+    ("Food quality was top notch, arrived quickly and warm.", "Positive"),
+    ("Great tasting dishes, quick 15 minute delivery, very happy!", "Positive"),
+    ("The battery lasts all day during normal usage, very reliable.", "Positive"),
+    ("The phone feels comfortable in hands, stunning display and camera.", "Positive"),
 
     # Negative (45 samples)
     ("Worst purchase ever, it stopped working in just two days.", "Negative"),
@@ -98,6 +108,16 @@ DATASET = [
     ("Overheats dangerously hot to the touch after just five minutes.", "Negative"),
     ("Utter waste of money, defective product and no replacement policy.", "Negative"),
     ("Very bad experience, would never buy from this company again.", "Negative"),
+    ("Cold stale food, delivery was over an hour late and spilled.", "Negative"),
+    ("Horrible restaurant order, wrong items and ice cold food.", "Negative"),
+    ("Delivery arrived two hours late, food was ruined and inedible.", "Negative"),
+    ("Awful delivery experience, rude driver and food was missing.", "Negative"),
+    ("Food quality was terrible, undercooked and tasted rancid.", "Negative"),
+    ("Rude delivery person, food was stone cold and leaked in the bag.", "Negative"),
+    ("Never ordering again, delayed delivery and stale spoiled meal.", "Negative"),
+    ("Terrible service, delivery took forever and food was greasy and cold.", "Negative"),
+    ("However, the phone heats up during gaming and the charging speed is disappointing.", "Negative"),
+    ("Phone overheats dangerously during charging and battery drains immediately.", "Negative"),
 
     # Neutral (45 samples)
     ("Decent product for this price, nothing extraordinary.", "Neutral"),
@@ -144,31 +164,41 @@ DATASET = [
     ("Delivered on the expected date according to the tracking link.", "Neutral"),
     ("The item functions as specified in the technical datasheet.", "Neutral"),
     ("Internal memory is 64 gigabytes formatted in exFAT.", "Neutral"),
-    ("Average entry-level build, conforms to standard safety norms.", "Neutral")
+    ("Average entry-level build, conforms to standard safety norms.", "Neutral"),
+    ("The food order was delivered in a standard brown paper container.", "Neutral"),
+    ("The package includes utensils, napkins, and condiment packets.", "Neutral"),
+    ("The delivery was fulfilled by a third-party courier service.", "Neutral"),
+    ("Standard food portions according to the online menu listing.", "Neutral"),
+    ("Order was placed at 7 PM and delivered at 7:35 PM.", "Neutral"),
+    ("The delivery vehicle was a standard two-wheeler scooter.", "Neutral"),
+    ("The meal arrived in insulated thermal packaging as described.", "Neutral"),
+    ("The order confirmation was received via SMS notification.", "Neutral"),
+    ("The device comes with a 6.5-inch display and 128 GB of storage.", "Neutral"),
+    ("Device specifications indicate a 6.5-inch screen and 4000mAh battery.", "Neutral")
 ]
 
 LABELS = ["Positive", "Negative", "Neutral"]
 
 PRECOMPUTED_METRICS = {
-    "total_samples": 135,
-    "train_samples": 94,
-    "test_samples": 41,
+    "total_samples": 165,
+    "train_samples": 115,
+    "test_samples": 50,
     "naive_bayes": {
         "model_name": "Multinomial Naive Bayes (TF-IDF)",
-        "accuracy": 0.9024,
-        "precision_macro": 0.9083,
-        "recall_macro": 0.9024,
-        "f1_macro": 0.9012,
-        "confusion_matrix": [[13, 0, 1], [0, 12, 2], [1, 0, 12]],
+        "accuracy": 0.8000,
+        "precision_macro": 0.8054,
+        "recall_macro": 0.8015,
+        "f1_macro": 0.7968,
+        "confusion_matrix": [[11, 4, 2], [1, 14, 1], [1, 1, 15]],
         "labels": LABELS
     },
     "logistic_regression": {
         "model_name": "Logistic Regression (TF-IDF)",
-        "accuracy": 0.9268,
-        "precision_macro": 0.9314,
-        "recall_macro": 0.9268,
-        "f1_macro": 0.9259,
-        "confusion_matrix": [[14, 0, 0], [0, 12, 2], [1, 0, 12]],
+        "accuracy": 0.8000,
+        "precision_macro": 0.8041,
+        "recall_macro": 0.8015,
+        "f1_macro": 0.7928,
+        "confusion_matrix": [[10, 5, 2], [1, 14, 1], [1, 0, 16]],
         "labels": LABELS
     },
     "labels": LABELS

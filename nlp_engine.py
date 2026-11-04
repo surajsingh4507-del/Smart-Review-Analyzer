@@ -125,7 +125,7 @@ def analyze_word_sentiments(text: str) -> list:
     if not text:
         return []
     
-    words = re.findall(r"[\w']+|[.,!?;]", text)
+    words = re.findall(r"\d+(?:\.\d+)?|[\w']+|[.,!?;:]", text)
     word_details = []
     
     for w in words:
@@ -421,16 +421,25 @@ def extract_aspects_and_category(
         compound_score = vader_res_aspect['compound_score']
 
     severe_escalation_keywords = ['broken', 'refund', 'worst', 'terrible', 'urgent', 'cheat', 'scam', 'never', 'late', 'defective', 'damaged']
-    # Priority based strictly on sentiment severity and operational impact
+    defect_alert_keywords = ['heats up', 'heat up', 'overheating', 'overheat', 'charging speed', 'battery drain', 'disappointing', 'disappointed', 'defect', 'defective', 'flaw', 'glitch', 'broken']
+    has_defect_alert = any(w in text_lower for w in defect_alert_keywords)
+
+    # Priority based strictly on sentiment severity and operational impact (single unified if/elif/else chain)
     if sentiment == 'Negative' and (compound_score <= -0.50 or any(w in text_lower for w in severe_escalation_keywords)):
         priority = 'High'
         recommendation = '🚨 High Severity: Initiate instant replacement or refund workflow; escalate ticket to Senior Technical Support within 2 hours.'
     elif sentiment == 'Negative' or compound_score < -0.05:
         priority = 'Medium'
         recommendation = '⚡ Attention Required: Flag review for quality assurance team and dispatch personalized customer apology email.'
+    elif sentiment == 'Positive' and has_defect_alert:
+        priority = 'Medium'
+        recommendation = '⚠️ Mixed Review with Defect Alert: Positive overall, but customer flagged product defect (heating/charging/flaws). Escalate to QA for inspection.'
     elif sentiment == 'Positive':
         priority = 'Low'
         recommendation = '⭐ Positive Feedback: Highlight this customer testimony on promotional banners and thank customer with loyalty rewards.'
+    elif has_defect_alert:
+        priority = 'Medium'
+        recommendation = '⚠️ Attention Required: Neutral feedback mentions potential defect/flaw. Flag for QA inspection.'
     else:
         priority = 'Low'
         recommendation = 'ℹ️ Neutral Inquiry/Spec: Log in database for catalog reference; no immediate remediation needed.'

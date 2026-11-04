@@ -193,7 +193,7 @@ def save_batch_reviews_to_history(
                 if not raw_text:
                     continue
                 v_scores = r.get("vader_scores", {})
-                v_comp = v_scores.get("compound_score", 0.0)
+                v_comp = r.get("overall_compound_score", v_scores.get("compound_score", 0.0))
                 v_pos = v_scores.get("pos", 0.0)
                 v_neg = v_scores.get("neg", 0.0)
                 v_neu = v_scores.get("neu", 0.0)
@@ -294,7 +294,7 @@ def analyze_single_review(payload: SingleReviewRequest):
             confidence=float(conf_val),
             categories=result.get("categories", []),
             priority=result.get("priority", "Low"),
-            vader_compound=float(v_scores.get("compound_score", 0.0) or 0.0),
+            vader_compound=float(result.get("overall_compound_score", v_scores.get("compound_score", 0.0)) or 0.0),
             vader_scores=v_scores,
             subjectivity=float(tb_metrics.get("subjectivity", 0.0) or 0.0),
             source="single"
@@ -1507,9 +1507,6 @@ def get_interactive_dashboard():
                 <button onclick="openDocModal()" class="btn-link" title="Open Technical Reference Documentation">
                     📖 Technical Reference
                 </button>
-                <a href="/docs" target="_blank" class="btn-link" title="Open Interactive Swagger REST API Docs">
-                    🌐 API Docs (/docs)
-                </a>
                 <a href="/api/export-history-csv" class="btn-link" title="Download Historical Analyses in CSV format">
                     📥 History CSV
                 </a>
@@ -2479,9 +2476,9 @@ def get_interactive_dashboard():
             const cloudContainer = document.getElementById('bubbleCloudContainer');
             if (data.aspect_keywords && data.aspect_keywords.length) {
                 cloudContainer.innerHTML = data.aspect_keywords.map(a => `
-                    <div class="bubble-tag">
+                    <div class="bubble-tag" style="display:inline-flex; align-items:center; gap:6px;">
                         <span>🏷️ ${a.keyword}</span>
-                        <span style="font-size:10px; background:#bae6fd; padding:1px 6px; border-radius:10px;">${a.aspect}</span>
+                        <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-weight:600;">[${a.aspect}]</span>
                     </div>
                 `).join('');
             } else {
@@ -2544,16 +2541,20 @@ def get_interactive_dashboard():
             const highlightBox = document.getElementById('highlightedWordsBox');
             if (!currentTokens.length) return;
 
-            highlightBox.innerHTML = currentTokens.map(item => {
+            let html = '';
+            currentTokens.forEach((item, idx) => {
                 let stopClass = (dimStopwords && item.is_stopword) ? 'word-stop' : '';
+                let isPunct = /^[.,!?;:]$/.test(item.word);
+                let space = (idx > 0 && !isPunct) ? ' ' : '';
                 if (item.sentiment === 'positive') {
-                    return `<span class="word-pos ${stopClass}" title="VADER: +${item.score}">${item.word}</span> `;
+                    html += `${space}<span class="word-pos ${stopClass}" title="VADER: +${item.score}">${item.word}</span>`;
                 } else if (item.sentiment === 'negative') {
-                    return `<span class="word-neg ${stopClass}" title="VADER: ${item.score}">${item.word}</span> `;
+                    html += `${space}<span class="word-neg ${stopClass}" title="VADER: ${item.score}">${item.word}</span>`;
                 } else {
-                    return `<span class="${stopClass}">${item.word}</span> `;
+                    html += `${space}<span class="${stopClass}">${item.word}</span>`;
                 }
-            }).join('');
+            });
+            highlightBox.innerHTML = html;
         }
 
         function renderSentimentDoughnut(pos, neg, neu) {
