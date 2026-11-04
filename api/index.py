@@ -25,43 +25,60 @@ def unpack_asgi_scope(scope: dict) -> dict:
         return scope
 
     real_path = None
+    headers = dict(scope.get("headers", []))
+
+    # 1. Check x-invoke-path (Vercel serverless / AWS Lambda path)
+    invoke_path = headers.get(b"x-invoke-path", b"").decode("latin1", errors="ignore").strip()
+    if invoke_path and not invoke_path.startswith("/api/index.py"):
+        real_path = invoke_path
+
+    # 2. Check x-forwarded-uri (Vercel reverse proxy original URI)
+    if not real_path:
+        fwd_uri = headers.get(b"x-forwarded-uri", b"").decode("latin1", errors="ignore").strip()
+        if fwd_uri and not fwd_uri.startswith("/api/index.py"):
+            real_path = fwd_uri
+
+    # 3. Check query string for __route_path__
     qs_bytes = scope.get("query_string", b"")
     qs = qs_bytes.decode("latin1", errors="ignore")
-
-    # 1. First priority: Check query string for __route_path__ injected by vercel.json
-    if "__route_path__" in qs:
+    if not real_path and "__route_path__" in qs:
         params = urllib.parse.parse_qs(qs, keep_blank_values=True)
         if "__route_path__" in params:
             route_vals = params.pop("__route_path__")
             if route_vals and route_vals[0]:
                 real_path = route_vals[0]
-                # In case the route path itself contained an embedded query string
                 if "?" in real_path:
                     real_path, extra_qs = real_path.split("?", 1)
                     extra_params = urllib.parse.parse_qs(extra_qs, keep_blank_values=True)
                     for k, v in extra_params.items():
                         params.setdefault(k, []).extend(v)
-                # Re-encode query string without __route_path__
                 new_qs = urllib.parse.urlencode(params, doseq=True)
                 scope["query_string"] = new_qs.encode("latin1")
 
-    # 2. Second priority: Check Vercel routing headers
+    # 4. Check x-matched-path header (may contain __route_path__ or real path)
     if not real_path:
-        headers = dict(scope.get("headers", []))
-        matched = (
-            headers.get(b"x-matched-path")
-            or headers.get(b"x-forwarded-uri")
-            or headers.get(b"x-real-path")
-        )
-        if matched:
-            candidate = matched.decode("latin1", errors="ignore")
-            if "?" in candidate:
-                candidate, _ = candidate.split("?", 1)
-            if candidate and not candidate.startswith("/api/index.py"):
-                real_path = candidate
+        matched = headers.get(b"x-matched-path", b"").decode("latin1", errors="ignore").strip()
+        if "__route_path__" in matched:
+            if "?" in matched:
+                _, mqs = matched.split("?", 1)
+                mparams = urllib.parse.parse_qs(mqs, keep_blank_values=True)
+                if "__route_path__" in mparams and mparams["__route_path__"]:
+                    real_path = mparams["__route_path__"][0]
+        elif matched and not matched.startswith("/api/index.py"):
+            real_path = matched
 
-    # 3. Normalize and apply resolved path
+    # 5. Check x-now-route-matches (Vercel route match capture group $1)
+    if not real_path:
+        route_matches = headers.get(b"x-now-route-matches", b"").decode("latin1", errors="ignore").strip()
+        if route_matches:
+            rm_params = urllib.parse.parse_qs(route_matches, keep_blank_values=True)
+            if "1" in rm_params and rm_params["1"]:
+                real_path = "/" + rm_params["1"][0].lstrip("/")
+
+    # 6. Normalize resolved path
     if real_path:
+        if "?" in real_path:
+            real_path, extra_qs = real_path.split("?", 1)
         real_path = "/" + real_path.lstrip("/")
         if real_path in ["/api/index.py", "/api/index", "/api", "/api/"]:
             real_path = "/"
