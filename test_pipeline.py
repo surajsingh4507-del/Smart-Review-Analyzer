@@ -1501,7 +1501,7 @@ def test_57_vercel_and_safe_json_handling():
     assert len(rewrites) >= 1
     # Ensure no negative lookahead excluding /api/
     assert "(?!api/)" not in rewrites[0]["source"]
-    assert rewrites[0]["destination"] == "/api/index.py"
+    assert rewrites[0]["destination"].startswith("/api/index.py")
 
     # Verify frontend safe JSON parsing in dashboard
     resp = get_interactive_dashboard()
@@ -1636,3 +1636,109 @@ def test_59_complete_seo_optimization():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     assert os.path.isfile(os.path.join(base_dir, "robots.txt"))
     assert os.path.isfile(os.path.join(base_dir, "sitemap.xml"))
+
+
+
+# ============================================================================
+# 60. Vercel ASGI Scope Unpacker & Method Routing Verification
+# ============================================================================
+def test_60_vercel_asgi_scope_unpacker_and_method_routing():
+    """
+    Verify that Vercel rewrites to /api/index.py are correctly unpacked to the
+    real API routes (/api/analyze, /api/analyze-batch, etc.) so that HTTP 405
+    Method Not Allowed is never returned.
+    """
+    sys.path.insert(0, os.path.join(BASE_DIR, "api"))
+    from api.index import unpack_asgi_scope
+
+    # Case A: Vercel rewrite with __route_path__ for single review
+    scope_analyze = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/index.py",
+        "raw_path": b"/api/index.py",
+        "query_string": b"__route_path__=/api/analyze",
+        "headers": []
+    }
+    unpacked = unpack_asgi_scope(scope_analyze)
+    assert unpacked["path"] == "/api/analyze"
+    assert unpacked["raw_path"] == b"/api/analyze"
+    assert unpacked["query_string"] == b""
+
+    # Case B: Vercel rewrite for batch review
+    scope_batch = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/index.py",
+        "raw_path": b"/api/index.py",
+        "query_string": b"__route_path__=/api/analyze-batch",
+        "headers": []
+    }
+    unpacked_b = unpack_asgi_scope(scope_batch)
+    assert unpacked_b["path"] == "/api/analyze-batch"
+    assert unpacked_b["raw_path"] == b"/api/analyze-batch"
+
+    # Case C: Vercel rewrite preserving original query parameters (e.g. /api/history?limit=50)
+    scope_history = {
+        "type": "http",
+        "method": "GET",
+        "path": "/api/index.py",
+        "raw_path": b"/api/index.py",
+        "query_string": b"__route_path__=/api/history&limit=50&offset=10",
+        "headers": []
+    }
+    unpacked_h = unpack_asgi_scope(scope_history)
+    assert unpacked_h["path"] == "/api/history"
+    assert b"limit=50" in unpacked_h["query_string"]
+    assert b"offset=10" in unpacked_h["query_string"]
+    assert b"__route_path__" not in unpacked_h["query_string"]
+
+    # Case D: Vercel x-matched-path header fallback
+    scope_header = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/index.py",
+        "raw_path": b"/api/index.py",
+        "query_string": b"",
+        "headers": [(b"x-matched-path", b"/api/upload-document")]
+    }
+    unpacked_hdr = unpack_asgi_scope(scope_header)
+    assert unpacked_hdr["path"] == "/api/upload-document"
+
+    # Case E: Direct request to /api/index.py normalizes to /
+    scope_root = {
+        "type": "http",
+        "method": "GET",
+        "path": "/api/index.py",
+        "raw_path": b"/api/index.py",
+        "query_string": b"",
+        "headers": []
+    }
+    unpacked_root = unpack_asgi_scope(scope_root)
+    assert unpacked_root["path"] == "/"
+
+
+# ============================================================================
+# 61. Direct POST /api/index.py Fallback Route Verification
+# ============================================================================
+def test_61_api_index_post_handler_fallback():
+    """
+    Verify that even if a POST request reaches /api/index.py directly,
+    the fallback handler dispatches it safely instead of raising 405 Method Not Allowed.
+    """
+    from main import api_index_post_handler
+
+    # Subcase 1: Single review JSON payload
+    resp = api_index_post_handler({"review": "Outstanding product and superb speed!", "threshold": 0.05})
+    assert resp["sentiment"] == "Positive"
+    assert resp["confidence_percentage"] > 0
+
+    # Subcase 2: Batch review JSON payload
+    resp_b = api_index_post_handler({"reviews": ["Great item!", "Disappointing battery life."], "threshold": 0.05})
+    assert resp_b["total_processed"] == 2
+    assert resp_b["sentiment_counts"]["Positive"] == 1
+    assert resp_b["sentiment_counts"]["Negative"] == 1
+
+    # Subcase 3: Invalid empty payload returns 400 JSONResponse, NOT 405 Method Not Allowed
+    resp_err = api_index_post_handler({})
+    assert resp_err.status_code == 400

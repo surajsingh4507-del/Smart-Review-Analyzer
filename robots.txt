@@ -3,3 +3,4 @@ Allow: /
 Disallow: /api/
 
 Sitemap: https://smart-review-analyzer-sandy.vercel.app/sitemap.xml
+

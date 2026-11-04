@@ -258,7 +258,9 @@ class BatchReviewRequest(BaseModel):
 
 
 @app.get("/health")
+@app.get("/health/")
 @app.get("/api/health")
+@app.get("/api/health/")
 def health_check():
     return {
         "status": "healthy",
@@ -272,13 +274,16 @@ def health_check():
 
 
 @app.get("/api/docs", include_in_schema=False)
+@app.get("/api/docs/", include_in_schema=False)
 def api_docs_redirect():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/docs")
 
 
 @app.post("/api/analyze")
+@app.post("/api/analyze/")
 @app.post("/analyze")
+@app.post("/analyze/")
 def analyze_single_review(payload: SingleReviewRequest):
     """
     Dedicated exclusively to single text review analysis.
@@ -321,7 +326,9 @@ def analyze_single_review(payload: SingleReviewRequest):
 
 
 @app.post("/api/analyze-batch")
+@app.post("/api/analyze-batch/")
 @app.post("/analyze-batch")
+@app.post("/analyze-batch/")
 def analyze_batch_reviews(payload: BatchReviewRequest):
     """
     Process pasted batch reviews (one per line, numbered, or paragraphs).
@@ -467,10 +474,15 @@ def analyze_batch_reviews(payload: BatchReviewRequest):
 
 
 @app.post("/api/upload-document")
+@app.post("/api/upload-document/")
 @app.post("/upload-document")
+@app.post("/upload-document/")
 @app.post("/api/upload-file")
+@app.post("/api/upload-file/")
 @app.post("/api/upload-csv")
+@app.post("/api/upload-csv/")
 @app.post("/upload-csv")
+@app.post("/upload-csv/")
 def upload_document_endpoint(
     file: UploadFile = File(...),
     threshold: Optional[float] = 0.05,
@@ -663,6 +675,9 @@ def upload_document_endpoint(
 
 
 @app.post("/api/export-batch-csv")
+@app.post("/api/export-batch-csv/")
+@app.post("/export-batch-csv")
+@app.post("/export-batch-csv/")
 def export_batch_csv(data: Dict[str, Any]):
     """
     Exports batch sentiment analysis results as a standardized CSV file.
@@ -717,6 +732,9 @@ def export_batch_csv(data: Dict[str, Any]):
 
 
 @app.post("/api/export-batch-pdf")
+@app.post("/api/export-batch-pdf/")
+@app.post("/export-batch-pdf")
+@app.post("/export-batch-pdf/")
 def export_batch_pdf(data: Dict[str, Any]):
     """
     Generates and downloads a paginated, formatted PDF report of batch sentiment analysis.
@@ -741,7 +759,9 @@ def export_batch_pdf(data: Dict[str, Any]):
 
 
 @app.get("/api/export-history-csv")
+@app.get("/api/export-history-csv/")
 @app.get("/export-history-csv")
+@app.get("/export-history-csv/")
 def export_history_csv():
     target_path = get_db_path()
     try:
@@ -812,13 +832,17 @@ def export_history_csv():
 
 
 @app.get("/api/metrics")
+@app.get("/api/metrics/")
 @app.get("/metrics")
+@app.get("/metrics/")
 def get_evaluation_metrics():
     return train_and_evaluate_models()
 
 
 @app.get("/api/history")
+@app.get("/api/history/")
 @app.get("/history")
+@app.get("/history/")
 def get_analysis_history(limit: int = 15, offset: int = 0):
     """
     Retrieve historical sentiment analysis records ordered by newest first.
@@ -946,8 +970,37 @@ def get_sitemap_xml():
 @app.get("/api", response_class=HTMLResponse)
 @app.get("/api/", response_class=HTMLResponse)
 @app.get("/api/index", response_class=HTMLResponse)
+@app.get("/api/index/", response_class=HTMLResponse)
 @app.get("/api/index.py", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
+@app.post("/api/index.py")
+@app.post("/api/index")
+def api_index_post_handler(payload: Dict[str, Any] = None):
+    """
+    Fallback handler for direct or un-unpacked POST requests to /api/index.py.
+    Smartly routes single review or batch review payloads to avoid 405 Method Not Allowed.
+    """
+    if payload is None:
+        payload = {}
+    if isinstance(payload, dict):
+        if "review" in payload and "reviews" not in payload and "detailed_results" not in payload:
+            single_req = SingleReviewRequest(
+                review=str(payload.get("review", "")),
+                threshold=float(payload.get("threshold", 0.05) if payload.get("threshold") is not None else 0.05)
+            )
+            return analyze_single_review(single_req)
+        elif "reviews" in payload or "text" in payload:
+            batch_req = BatchReviewRequest(
+                reviews=payload.get("reviews"),
+                text=payload.get("text"),
+                threshold=float(payload.get("threshold", 0.05) if payload.get("threshold") is not None else 0.05),
+                mode=payload.get("mode", "auto")
+            )
+            return analyze_batch_reviews(batch_req)
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "Invalid request to /api/index.py. Use /api/analyze for single reviews or /api/analyze-batch for batch analysis."}
+    )
 def get_interactive_dashboard():
     logo_src = get_sentiq_logo_uri()
     html_content = """<!DOCTYPE html>
