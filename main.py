@@ -910,6 +910,38 @@ def get_sentiq_logo_uri() -> str:
             logger.warning(f"Error reading logo base64 file: {e}")
     return "/assets/sentiq-logo.png"
 
+@app.get("/robots.txt", response_class=Response)
+def get_robots_txt():
+    """
+    Search engine crawler directives allowing complete crawling of the web application.
+    """
+    content = """User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://smart-review-analyzer-sandy.vercel.app/sitemap.xml
+"""
+    return Response(content=content, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/sitemap.xml", response_class=Response)
+def get_sitemap_xml():
+    """
+    Standard XML sitemap for search engine indexing.
+    """
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://smart-review-analyzer-sandy.vercel.app/</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+"""
+    return Response(content=content, media_type="application/xml; charset=utf-8")
+
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api", response_class=HTMLResponse)
 @app.get("/api/", response_class=HTMLResponse)
@@ -923,7 +955,88 @@ def get_interactive_dashboard():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentiq – Review Intelligence</title>
+
+    <!-- Primary SEO Metadata -->
+    <title>Sentiq – Smart Review Analyzer | AI Sentiment Analysis</title>
+    <meta name="description" content="Sentiq is an intelligent NLP-powered review analyzer that uses VADER, TextBlob and Machine Learning to analyze customer sentiment, extract opinions and generate actionable insights.">
+    <meta name="keywords" content="Sentiq, Smart Review Analyzer, Sentiment Analysis, NLP Sentiment Analysis, Customer Review Analyzer, AI Review Analysis, Customer Feedback Analytics">
+    <meta name="author" content="Sentiq – Review Intelligence">
+    <meta name="application-name" content="Sentiq – Smart Review Analyzer">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <link rel="canonical" href="https://smart-review-analyzer-sandy.vercel.app/">
+
+    <!-- Performance & Preconnect -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+    <!-- Open Graph / Social Sharing (Facebook, LinkedIn, WhatsApp) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://smart-review-analyzer-sandy.vercel.app/">
+    <meta property="og:title" content="Sentiq – Smart Review Analyzer | AI Sentiment Analysis">
+    <meta property="og:description" content="Sentiq is an intelligent NLP-powered review analyzer that uses VADER, TextBlob and Machine Learning to analyze customer sentiment, extract opinions and generate actionable insights.">
+    <meta property="og:image" content="https://smart-review-analyzer-sandy.vercel.app/assets/sentiq-logo.png">
+    <meta property="og:image:alt" content="Sentiq – Smart Review Analyzer & Review Intelligence Logo">
+    <meta property="og:image:width" content="1024">
+    <meta property="og:image:height" content="341">
+    <meta property="og:site_name" content="Sentiq – Review Intelligence">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://smart-review-analyzer-sandy.vercel.app/">
+    <meta name="twitter:title" content="Sentiq – Smart Review Analyzer | AI Sentiment Analysis">
+    <meta name="twitter:description" content="Sentiq is an intelligent NLP-powered review analyzer that uses VADER, TextBlob and Machine Learning to analyze customer sentiment, extract opinions and generate actionable insights.">
+    <meta name="twitter:image" content="https://smart-review-analyzer-sandy.vercel.app/assets/sentiq-logo.png">
+    <meta name="twitter:image:alt" content="Sentiq – Smart Review Analyzer & Review Intelligence Logo">
+
+    <!-- JSON-LD Structured Data: SoftwareApplication & WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://smart-review-analyzer-sandy.vercel.app/#software",
+          "name": "Sentiq – Smart Review Analyzer",
+          "alternateName": ["Sentiq", "Smart Review Analyzer", "Sentiq Review Intelligence"],
+          "operatingSystem": "All (Web Application)",
+          "applicationCategory": "BusinessApplication",
+          "description": "Sentiq is an intelligent NLP-powered review analyzer that uses VADER, TextBlob and Machine Learning to analyze customer sentiment, extract opinions and generate actionable insights.",
+          "url": "https://smart-review-analyzer-sandy.vercel.app/",
+          "image": "https://smart-review-analyzer-sandy.vercel.app/assets/sentiq-logo.png",
+          "screenshot": "https://smart-review-analyzer-sandy.vercel.app/assets/sentiq-logo.png",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "Single Customer Review Sentiment Analysis",
+            "Batch Customer Review & Multi-Format Document Processing",
+            "Sentence-Level Sentiment Segmentation & Compound Scoring",
+            "Aspect Extraction for Quality, Shipping, Support, and Pricing",
+            "Multi-Model Consensus with VADER, TextBlob, Logistic Regression & Naive Bayes",
+            "Interactive Sentiment Analytics Dashboard & Trend Reporting",
+            "Export Reports to CSV and PDF"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://smart-review-analyzer-sandy.vercel.app/#website",
+          "url": "https://smart-review-analyzer-sandy.vercel.app/",
+          "name": "Sentiq – Review Intelligence",
+          "description": "AI Sentiment Analysis and Customer Feedback Intelligence Platform",
+          "publisher": {
+            "@type": "Organization",
+            "name": "Sentiq",
+            "logo": "https://smart-review-analyzer-sandy.vercel.app/assets/sentiq-logo.png"
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Chart.js for Visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -2114,7 +2227,7 @@ def get_interactive_dashboard():
     <div id="sentiqIntroOverlay" class="sentiq-intro-overlay" aria-hidden="true">
         <div class="sentiq-intro-content">
             <div class="sentiq-logo-wrapper">
-                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq – Review Intelligence" class="sentiq-intro-logo" id="sentiqIntroImg">
+                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq – Smart Review Analyzer & Review Intelligence Logo" class="sentiq-intro-logo" id="sentiqIntroImg">
             </div>
             <p class="sentiq-intro-tagline">Every Review Has a Story. We Decode It.</p>
         </div>
@@ -2125,7 +2238,7 @@ def get_interactive_dashboard():
         <!-- FIXED VERTICAL SIDEBAR -->
         <aside class="app-sidebar" id="appSidebar">
             <div class="sidebar-brand">
-                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq Logo" class="sidebar-logo-img">
+                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq – Smart Review Analyzer & Review Intelligence Logo" class="sidebar-logo-img">
                 <div class="sidebar-brand-text">
                     <h1>Sentiq</h1>
                     <p>Review Intelligence</p>

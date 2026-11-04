@@ -1570,3 +1570,69 @@ def test_58_saas_sidebar_and_views_structure():
     assert 'id="aspectAnalyticsBars"' in html
     assert 'id="priorityAnalyticsBars"' in html
     assert 'id="dashboardRecentTableBody"' in html
+
+
+# ============================================================================
+# 59. Complete SEO Optimization: Metadata, Open Graph, JSON-LD, Robots & Sitemap
+# ============================================================================
+def test_59_complete_seo_optimization():
+    """
+    Validate complete SEO metadata, Open Graph & Twitter Cards,
+    canonical link, JSON-LD SoftwareApplication schema, and robots/sitemap routes.
+    """
+    resp = get_interactive_dashboard()
+    html = resp.body.decode('utf-8')
+
+    # 1. Title tag
+    assert "<title>Sentiq – Smart Review Analyzer | AI Sentiment Analysis</title>" in html
+
+    # 2. Meta description
+    assert 'name="description" content="Sentiq is an intelligent NLP-powered review analyzer that uses VADER, TextBlob and Machine Learning to analyze customer sentiment, extract opinions and generate actionable insights."' in html
+
+    # 3. SEO Keywords
+    assert 'name="keywords" content="Sentiq, Smart Review Analyzer, Sentiment Analysis, NLP Sentiment Analysis, Customer Review Analyzer, AI Review Analysis, Customer Feedback Analytics"' in html
+
+    # 4. Canonical URL & Crawling Directives
+    assert '<link rel="canonical" href="https://smart-review-analyzer-sandy.vercel.app/">' in html
+    assert 'name="robots" content="index, follow' in html
+    assert 'noindex' not in html
+
+    # 5. Open Graph Metadata
+    assert 'property="og:type" content="website"' in html
+    assert 'property="og:url" content="https://smart-review-analyzer-sandy.vercel.app/"' in html
+    assert 'property="og:title" content="Sentiq – Smart Review Analyzer | AI Sentiment Analysis"' in html
+    assert 'property="og:image" content="https://smart-review-analyzer-sandy.vercel.app/assets/sentiq-logo.png"' in html
+    assert 'property="og:site_name" content="Sentiq – Review Intelligence"' in html
+
+    # 6. Twitter Card Metadata
+    assert 'name="twitter:card" content="summary_large_image"' in html
+    assert 'name="twitter:title" content="Sentiq – Smart Review Analyzer | AI Sentiment Analysis"' in html
+
+    # 7. JSON-LD Structured Data
+    assert 'type="application/ld+json"' in html
+    assert '"@type": "SoftwareApplication"' in html
+    assert '"name": "Sentiq – Smart Review Analyzer"' in html
+    assert '"operatingSystem": "All (Web Application)"' in html
+    assert '"applicationCategory": "BusinessApplication"' in html
+
+    # 8. Logo Alt Text
+    assert 'alt="Sentiq – Smart Review Analyzer & Review Intelligence Logo"' in html
+
+    # 9. Robots.txt route & physical file
+    from main import get_robots_txt, get_sitemap_xml
+    robots_resp = get_robots_txt()
+    robots_content = robots_resp.body.decode('utf-8')
+    assert "User-agent: *" in robots_content
+    assert "Allow: /" in robots_content
+    assert "Sitemap: https://smart-review-analyzer-sandy.vercel.app/sitemap.xml" in robots_content
+
+    # 10. Sitemap.xml route & physical file
+    sitemap_resp = get_sitemap_xml()
+    sitemap_content = sitemap_resp.body.decode('utf-8')
+    assert "https://smart-review-analyzer-sandy.vercel.app/" in sitemap_content
+    assert "<loc>" in sitemap_content
+
+    # Verify physical files exist on disk
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    assert os.path.isfile(os.path.join(base_dir, "robots.txt"))
+    assert os.path.isfile(os.path.join(base_dir, "sitemap.xml"))
