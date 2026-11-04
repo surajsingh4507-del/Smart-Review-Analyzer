@@ -1003,7 +1003,7 @@ def api_index_post_handler(payload: Dict[str, Any] = None):
 @app.get("/api/index/", response_class=HTMLResponse)
 @app.get("/api/index.py", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
-def get_interactive_dashboard():
+def get_interactive_dashboard(request: Request = None):
     logo_src = get_sentiq_logo_uri()
     html_content = """<!DOCTYPE html>
 <html lang="en">
@@ -4001,4 +4001,21 @@ def get_interactive_dashboard():
 </body>
 </html>
 """
-    return HTMLResponse(content=html_content.replace("__SENTIQ_LOGO_SRC__", logo_src))
+    headers_debug = {}
+    path_debug = ""
+    qs_debug = ""
+    if request:
+        try:
+            headers_debug = {k: v for k, v in request.headers.items()}
+            path_debug = str(request.url.path)
+            qs_debug = str(request.scope.get("query_string", b""))
+        except Exception:
+            pass
+    return HTMLResponse(
+        content=html_content.replace("__SENTIQ_LOGO_SRC__", logo_src),
+        headers={
+            "X-Debug-Path": path_debug,
+            "X-Debug-QS": qs_debug,
+            "X-Debug-Headers": json.dumps(headers_debug)[:800]
+        }
+    )
