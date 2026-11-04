@@ -442,9 +442,15 @@ def analyze_batch_reviews(payload: BatchReviewRequest):
     save_batch_reviews_to_history(results, source="batch_paste")
 
     return {
+        "total_processed": total,
         "total_reviews": total,
         "reviews_processed": total,
         "reviews_failed": 0,
+        "sentiment_counts": {
+            "Positive": pos_count,
+            "Negative": neg_count,
+            "Neutral": neu_count,
+        },
         "sentiment_distribution": {
             "Positive": pos_count,
             "Negative": neg_count,
@@ -632,9 +638,15 @@ def upload_document_endpoint(
     save_batch_reviews_to_history(results, source="document_upload")
 
     return {
+        "total_processed": total,
         "total_reviews": total,
         "reviews_processed": total,
         "reviews_failed": failed_records,
+        "sentiment_counts": {
+            "Positive": pos_count,
+            "Negative": neg_count,
+            "Neutral": neu_count,
+        },
         "sentiment_distribution": {
             "Positive": pos_count,
             "Negative": neg_count,
@@ -3181,7 +3193,8 @@ def get_interactive_dashboard():
                 currentBatchData = data;
                 renderBatchDashboard(data);
                 loadHistory();
-                showToast(`Successfully analyzed ${data.total_processed} reviews from file.`);
+                const batchCount = (data.total_processed !== undefined) ? data.total_processed : (data.total_reviews || data.reviews_processed || (data.detailed_results ? data.detailed_results.length : 0));
+                showToast(`Successfully analyzed ${batchCount} reviews from file.`);
             } catch (err) {
                 alert('Document Processing Error: ' + err.message);
             } finally {
@@ -3222,7 +3235,8 @@ def get_interactive_dashboard():
                 currentBatchData = data;
                 renderBatchDashboard(data);
                 loadHistory();
-                showToast(`Successfully analyzed ${data.total_processed} bulk reviews.`);
+                const batchCount = (data.total_processed !== undefined) ? data.total_processed : (data.total_reviews || data.reviews_processed || (data.detailed_results ? data.detailed_results.length : 0));
+                showToast(`Successfully analyzed ${batchCount} bulk reviews.`);
             } catch (err) {
                 alert('Batch Processing Error: ' + err.message);
             } finally {
@@ -3233,21 +3247,31 @@ def get_interactive_dashboard():
 
         function renderBatchDashboard(data) {
             document.getElementById('batchResultsDashboard').style.display = 'block';
-            document.getElementById('batchTotalCount').innerText = data.total_processed || 0;
 
-            const counts = data.sentiment_counts || {};
-            const pos = counts.Positive || 0;
-            const neg = counts.Negative || 0;
-            const neu = counts.Neutral || 0;
-            const total = data.total_processed || (pos + neg + neu) || 1;
+            const total = (data.total_processed !== undefined && data.total_processed !== null) ? data.total_processed :
+                          (data.total_reviews !== undefined && data.total_reviews !== null) ? data.total_reviews :
+                          (data.reviews_processed !== undefined && data.reviews_processed !== null) ? data.reviews_processed :
+                          (data.detailed_results ? data.detailed_results.length : 0);
+
+            document.getElementById('batchTotalCount').innerText = total;
+
+            const counts = data.sentiment_counts || data.sentiment_distribution || {};
+            const pos = counts.Positive !== undefined ? counts.Positive : 0;
+            const neg = counts.Negative !== undefined ? counts.Negative : 0;
+            const neu = counts.Neutral !== undefined ? counts.Neutral : 0;
 
             document.getElementById('batchPosCount').innerText = pos;
             document.getElementById('batchNegCount').innerText = neg;
             document.getElementById('batchNeuCount').innerText = neu;
 
-            document.getElementById('batchPosPct').innerText = `${Math.round((pos / total) * 100)}%`;
-            document.getElementById('batchNegPct').innerText = `${Math.round((neg / total) * 100)}%`;
-            document.getElementById('batchNeuPct').innerText = `${Math.round((neu / total) * 100)}%`;
+            const denom = total > 0 ? total : 1;
+            const posPct = counts.Positive_Percentage !== undefined ? counts.Positive_Percentage : Math.round((pos / denom) * 100);
+            const negPct = counts.Negative_Percentage !== undefined ? counts.Negative_Percentage : Math.round((neg / denom) * 100);
+            const neuPct = counts.Neutral_Percentage !== undefined ? counts.Neutral_Percentage : Math.round((neu / denom) * 100);
+
+            document.getElementById('batchPosPct').innerText = `${posPct}%`;
+            document.getElementById('batchNegPct').innerText = `${negPct}%`;
+            document.getElementById('batchNeuPct').innerText = `${neuPct}%`;
 
             renderBatchCharts(pos, neg, neu);
             populateBatchTable(data.detailed_results || []);
