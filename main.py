@@ -911,639 +911,66 @@ def get_interactive_dashboard():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentiq – Review Intelligence | Smart Review Analyzer v3.0</title>
+    <title>Sentiq – Review Intelligence</title>
     <!-- Chart.js for Visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --primary-light: #e0e7ff;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --card-border: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --accent-pos: #059669;
-            --accent-neg: #dc2626;
-            --accent-neu: #d97706;
+            --primary: #142B52;            /* Deep Navy */
+            --primary-hover: #0F172A;
+            --primary-light: #EEF2F6;
+            --secondary: #6D28D9;          /* Purple Accent */
+            --secondary-hover: #5B21B6;
+            --secondary-light: #F3E8FF;
+            --secondary-subtle: #FAF5FF;
+            --bg: #F8FAFC;                 /* Clean Slate 50 */
+            --sidebar-bg: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --card-border: #E2E8F0;         /* Slate 200 */
+            --card-border-hover: #CBD5E1;
+            --text-main: #0F172A;          /* Slate 900 */
+            --text-body: #1E293B;          /* Slate 800 */
+            --text-muted: #64748B;         /* Slate 500 */
+            --text-subtle: #94A3B8;        /* Slate 400 */
+            --pos: #059669;                /* Green 600 */
+            --pos-bg: #ECFDF5;
+            --pos-border: #A7F3D0;
+            --pos-chart: #16a34a;          /* Green Chart Point */
+            --neg: #DC2626;                /* Red 600 */
+            --neg-bg: #FEF2F2;
+            --neg-border: #FECACA;
+            --neg-chart: #dc2626;          /* Red Chart Point */
+            --neu: #D97706;                /* Amber 600 */
+            --neu-bg: #FFFBEB;
+            --neu-border: #FDE68A;
+            --neu-chart: #d97706;          /* Amber Chart Point */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+            --shadow-card: 0 2px 6px -1px rgba(0, 0, 0, 0.06), 0 1px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-float: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            --sidebar-width: 256px;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
         body {
             background-color: var(--bg);
-            color: var(--text-main);
-            padding: 24px;
+            color: var(--text-body);
             line-height: 1.5;
-        }
-
-        .container {
-            max-width: 1240px;
-            margin: 0 auto;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--card-border);
-            margin-bottom: 20px;
-        }
-
-        .header-title h1 {
-            font-size: 2.1rem;
-            color: #312e81;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .header-title p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .btn-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #ffffff;
-            color: #4f46e5;
-            text-decoration: none;
-            padding: 9px 15px;
-            border-radius: 8px;
-            border: 1px solid #cbd5e1;
-            font-size: 13.5px;
-            font-weight: 600;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        .btn-link:hover {
-            background: #f1f5f9;
-            border-color: #94a3b8;
-        }
-
-        /* Architecture bar */
-        .info-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-left: 4px solid #4f46e5;
-            border-radius: 10px;
-            padding: 12px 18px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .info-card-left {
-            display: flex;
-            gap: 18px;
-            align-items: center;
-            font-size: 13.5px;
-            color: #334155;
-            font-weight: 500;
-        }
-
-        .info-badge {
-            background: #e0e7ff;
-            color: #3730a3;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 11.5px;
-            border: 1px solid #c7d2fe;
-        }
-
-        /* Tabs */
-        .tab-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--card-border);
-            padding-bottom: 4px;
-        }
-
-        .tab-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 15px;
-            font-weight: 600;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tab-btn.active {
-            color: #4f46e5;
-            background: #ffffff;
-            border: 1px solid var(--card-border);
-            border-bottom: 2px solid #ffffff;
-            margin-bottom: -6px;
-            font-weight: 700;
-            box-shadow: 0 -2px 4px rgba(0,0,0,0.03);
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1.05fr 1fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 900px) {
-            .grid-2 { grid-template-columns: 1fr; }
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-            margin-bottom: 24px;
-        }
-
-        .card h2 {
-            font-size: 1.25rem;
-            color: #1e293b;
-            font-weight: 700;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        label {
-            font-size: 13px;
-            color: #475569;
-            font-weight: 600;
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        select, textarea, input[type="text"] {
-            width: 100%;
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            color: #0f172a;
-            padding: 11px 13px;
             font-size: 14px;
-            margin-bottom: 14px;
-            outline: none;
-            transition: all 0.2s;
-        }
-
-        select:focus, textarea:focus, input[type="text"]:focus {
-            background: #ffffff;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
-        }
-
-        textarea {
-            height: 125px;
-            resize: vertical;
-        }
-
-        .controls-row {
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px 14px;
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .slider-group {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .slider-group input[type="range"] {
-            flex: 1;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            width: 100%;
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 13px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-            transition: all 0.2s;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #f1f5f9;
-            color: #475569;
-            border: 1px solid #cbd5e1;
-            padding: 7px 14px;
-            border-radius: 6px;
-            font-size: 12.5px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .btn-secondary:hover {
-            background: #e2e8f0;
-            color: #0f172a;
-        }
-
-        .btn-mic {
-            background: #ffffff;
-            color: #4f46e5;
-            border: 1px solid #c7d2fe;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12.5px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-        .btn-mic:hover { background: #e0e7ff; }
-        .btn-mic.listening {
-            background: #fee2e2;
-            color: #dc2626;
-            border-color: #fca5a5;
-            animation: pulse 1.2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .spinner {
-            display: none;
-            width: 18px;
-            height: 18px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.8s ease-in-out infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 14px;
-            border-radius: 9999px;
-            font-size: 13px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .badge-pos { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-        .badge-neg { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-        .badge-neu { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-
-        .word-highlight-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 14px;
-            font-size: 14.5px;
-            line-height: 2.1;
-            margin-top: 8px;
-            color: #1e293b;
-        }
-
-        .word-pos {
-            background: #dcfce7;
-            color: #166534;
-            padding: 3px 8px;
-            border-radius: 4px;
-            border-bottom: 2px solid #22c55e;
-            font-weight: 700;
-        }
-
-        .word-neg {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 3px 8px;
-            border-radius: 4px;
-            border-bottom: 2px solid #ef4444;
-            font-weight: 700;
-        }
-
-        .word-stop {
-            opacity: 0.45;
-            text-decoration: line-through;
-            font-style: italic;
-        }
-
-        .metric-tile {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px 14px;
-        }
-
-        .metric-title {
-            font-size: 11.5px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .metric-value {
-            font-size: 18px;
-            font-weight: 800;
-            margin-top: 4px;
-            color: #0f172a;
-        }
-
-        .explanation-box {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-left: 4px solid #3b82f6;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-top: 12px;
-            font-size: 13.5px;
-            color: #1e40af;
-            font-weight: 500;
-            line-height: 1.5;
-        }
-
-        .recommendation-box {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-left: 4px solid #f59e0b;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-top: 10px;
-            font-size: 13.5px;
-            color: #92400e;
-            font-weight: 600;
-        }
-
-        .disagreement-box {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-left: 4px solid #ef4444;
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-top: 10px;
-            font-size: 13px;
-            color: #991b1b;
-            font-weight: 600;
-        }
-
-        .bubble-cloud {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        .bubble-tag {
-            background: #e0f2fe;
-            color: #0369a1;
-            border: 1px solid #bae6fd;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* Batch styling */
-        .batch-option-box {
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 18px;
-            margin-bottom: 20px;
-        }
-        .batch-option-box.active-box {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 1px #4f46e5;
-        }
-
-        .filter-btn {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12.5px;
-            font-weight: 600;
-            cursor: pointer;
-            color: #475569;
-            transition: all 0.2s;
-        }
-        .filter-btn.active {
-            background: #4f46e5;
-            color: #ffffff;
-            border-color: #4f46e5;
-        }
-
-        .sent-row-pos {
-            background-color: #f0fdf4 !important;
-            border-left: 4px solid #22c55e !important;
-        }
-        .sent-row-neg {
-            background-color: #fef2f2 !important;
-            border-left: 4px solid #ef4444 !important;
-        }
-        .sent-row-neu {
-            background-color: #fffbeb !important;
-            border-left: 4px solid #f59e0b !important;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            margin-top: 10px;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        th {
-            background: #f8fafc;
-            color: #475569;
-            font-size: 11.5px;
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        tbody tr:hover { background: #f8fafc; }
-
-        .pipeline-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 14px 4px;
-            margin-top: 6px;
-        }
-
-        .pipeline-step {
-            flex: 1;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px 10px;
-            text-align: center;
-            min-width: 130px;
-        }
-
-        .pipeline-step h4 {
-            font-size: 12.5px;
-            color: #3730a3;
-            margin-bottom: 4px;
-            font-weight: 700;
-        }
-
-        .pipeline-step p {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .pipeline-arrow {
-            color: #94a3b8;
-            font-weight: bold;
-            font-size: 16px;
-        }
-
-        .cm-table {
-            width: auto;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        .cm-table th, .cm-table td {
-            text-align: center;
-            padding: 10px 16px;
-            font-weight: 700;
-        }
-        .cm-diag {
-            background: #dcfce7 !important;
-            color: #15803d;
-            font-size: 15px;
-        }
-        .cm-off {
-            background: #fee2e2 !important;
-            color: #b91c1c;
-            font-size: 14px;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .modal-box {
-            background: #ffffff;
-            border-radius: 14px;
-            max-width: 750px;
-            width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 28px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 14px;
-            margin-bottom: 16px;
-        }
-        .modal-header h3 { font-size: 1.25rem; color: #1e293b; }
-        .close-modal-btn {
-            background: #f1f5f9;
-            border: none;
-            font-size: 18px;
-            padding: 4px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .close-modal-btn:hover { background: #e2e8f0; }
-
-        @media print {
-            body { background: #fff !important; color: #000 !important; padding: 0; }
-            .btn-primary, .btn-secondary, .btn-link, select, .tab-bar, .header-actions, .controls-row, .modal-overlay, #batchModeSection {
-                display: none !important;
-            }
-            .card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; page-break-inside: avoid; }
+            overflow-x: hidden;
         }
 
         /* ========================================== */
-        /* SENTIQ BRANDED STARTUP INTRO SCREEN       */
+        /* SENTIQ STARTUP INTRO SCREEN               */
         /* ========================================== */
         body.sentiq-intro-active {
             overflow: hidden !important;
@@ -1562,7 +989,6 @@ def get_interactive_dashboard():
             align-items: center;
             justify-content: center;
             opacity: 1;
-            /* Stage 1: 0-300ms overlay background; Stage 4: 1800ms-2400ms fade out (duration 600ms, delay 1800ms) */
             animation: sentiqOverlayFadeOut 600ms cubic-bezier(0.4, 0, 0.2, 1) 1800ms forwards;
             pointer-events: all;
             user-select: none;
@@ -1584,7 +1010,6 @@ def get_interactive_dashboard():
             align-items: center;
             justify-content: center;
             margin-bottom: 22px;
-            /* Stage 2: 300ms-900ms fade in and scale from 0.90 to 1.0 (duration 600ms, delay 300ms) */
             opacity: 0;
             transform: scale(0.90);
             animation: sentiqLogoReveal 600ms cubic-bezier(0.16, 1, 0.3, 1) 300ms forwards;
@@ -1601,7 +1026,6 @@ def get_interactive_dashboard():
         }
 
         .sentiq-intro-tagline {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: #142B52;
             font-size: 1.15rem;
             font-weight: 500;
@@ -1610,91 +1034,1070 @@ def get_interactive_dashboard():
             padding: 0;
             opacity: 0;
             transform: translateY(8px);
-            /* Stage 3: 900ms-1500ms fade in tagline (duration 600ms, delay 900ms) */
             animation: sentiqTaglineFadeIn 600ms cubic-bezier(0.16, 1, 0.3, 1) 900ms forwards;
         }
 
         @keyframes sentiqLogoReveal {
-            0% {
-                opacity: 0;
-                transform: scale(0.90);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1.0);
-            }
+            0% { opacity: 0; transform: scale(0.90); }
+            100% { opacity: 1; transform: scale(1.0); }
         }
 
         @keyframes sentiqTaglineFadeIn {
-            0% {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes sentiqOverlayFadeOut {
-            0% {
-                opacity: 1;
-                visibility: visible;
-            }
-            99% {
-                opacity: 0;
-                visibility: visible;
-            }
-            100% {
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none;
-            }
+            0% { opacity: 1; visibility: visible; }
+            99% { opacity: 0; visibility: visible; }
+            100% { opacity: 0; visibility: hidden; pointer-events: none; }
         }
 
-        /* Responsive Breakpoints */
         @media (max-width: 768px) {
-            .sentiq-intro-logo {
-                max-width: 320px;
-            }
-            .sentiq-intro-tagline {
-                font-size: 1rem;
-                letter-spacing: 0.3px;
-            }
+            .sentiq-intro-logo { max-width: 320px; }
+            .sentiq-intro-tagline { font-size: 1rem; letter-spacing: 0.3px; }
         }
 
         @media (max-width: 480px) {
-            .sentiq-intro-logo {
-                max-width: 250px;
-            }
-            .sentiq-intro-tagline {
-                font-size: 0.88rem;
-                letter-spacing: 0.2px;
+            .sentiq-intro-logo { max-width: 250px; }
+            .sentiq-intro-tagline { font-size: 0.88rem; letter-spacing: 0.2px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sentiq-intro-overlay { animation-duration: 200ms !important; animation-delay: 400ms !important; }
+            .sentiq-logo-wrapper { animation: none !important; opacity: 1 !important; transform: none !important; }
+            .sentiq-intro-tagline { animation: none !important; opacity: 1 !important; transform: none !important; }
+        }
+
+        /* ========================================== */
+        /* APPLICATION LAYOUT (SIDEBAR + MAIN)       */
+        /* ========================================== */
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+            background-color: var(--bg);
+        }
+
+        /* FIXED VERTICAL SIDEBAR */
+        .app-sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 50;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px 20px 20px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-logo-img {
+            height: 34px;
+            width: auto;
+            max-width: 140px;
+            object-fit: contain;
+        }
+
+        .sidebar-brand-text h1 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sidebar-brand-text p {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .sidebar-nav {
+            padding: 18px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            font-size: 13.5px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .sidebar-nav-item:hover {
+            color: var(--text-main);
+            background-color: #F1F5F9;
+        }
+
+        .sidebar-nav-item.active {
+            color: var(--secondary);
+            background-color: var(--secondary-light);
+            font-weight: 600;
+        }
+
+        .sidebar-nav-item svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--card-border);
+            background-color: #FAFAFA;
+        }
+
+        .sidebar-footer-card {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background-color: var(--pos);
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        /* MAIN CONTENT AREA */
+        .app-main {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--bg);
+        }
+
+        .app-topbar {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid var(--card-border);
+            padding: 16px 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .topbar-title-wrap h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.3px;
+        }
+
+        .topbar-title-wrap p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar-menu-btn {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        .app-content {
+            padding: 28px 36px 48px 36px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* VIEWS TOGGLE */
+        .app-view {
+            display: none;
+        }
+
+        .app-view.active {
+            display: block;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* BUTTONS & UI PRIMITIVES */
+        .btn-primary-purple {
+            background-color: var(--secondary);
+            color: #FFFFFF;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 11px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.15s ease, transform 0.05s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary-purple:hover {
+            background-color: var(--secondary-hover);
+        }
+
+        .btn-primary-purple:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #FFFFFF;
+            color: var(--text-body);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--card-border-hover);
+            background-color: #F8FAFC;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-size: 12.5px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: color 0.15s ease;
+        }
+
+        .btn-ghost:hover {
+            color: var(--text-main);
+            background-color: #F1F5F9;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-subtle);
+            transition: border-color 0.15s ease;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .card-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.2px;
+        }
+
+        /* SEGMENTED CONTROL */
+        .segmented-control {
+            display: inline-flex;
+            background-color: #F1F5F9;
+            padding: 4px;
+            border-radius: var(--radius-md);
+            margin-bottom: 22px;
+            border: 1px solid var(--card-border);
+        }
+
+        .segmented-btn {
+            background: transparent;
+            border: none;
+            padding: 7px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .segmented-btn.active {
+            background-color: #FFFFFF;
+            color: var(--secondary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        /* ========================================== */
+        /* VIEW 1: NEW REVIEW WORKSPACE              */
+        /* ========================================== */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
             }
         }
 
-        /* Accessibility: Reduced Motion */
-        @media (prefers-reduced-motion: reduce) {
-            .sentiq-intro-overlay {
-                animation-duration: 200ms !important;
-                animation-delay: 400ms !important;
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .review-textarea-wrapper {
+            position: relative;
+        }
+
+        .review-textarea {
+            width: 100%;
+            height: 180px;
+            padding: 14px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            background-color: #FFFFFF;
+        }
+
+        .review-textarea:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1);
+        }
+
+        .textarea-meta-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .input-tools-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn-mic-clean {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-body);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-mic-clean:hover {
+            border-color: var(--card-border-hover);
+            background-color: #F8FAFC;
+        }
+
+        .btn-mic-clean.recording {
+            background-color: #FEF2F2;
+            border-color: #F87171;
+            color: #DC2626;
+            animation: pulseRecord 1.5s infinite;
+        }
+
+        @keyframes pulseRecord {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3); }
+            70% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
+        .sample-select {
+            padding: 8px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            background-color: #FFFFFF;
+            color: var(--text-body);
+            outline: none;
+            max-width: 320px;
+            width: 100%;
+        }
+
+        .settings-panel {
+            background-color: #F8FAFC;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .slider-row input[type="range"] {
+            flex: 1;
+            accent-color: var(--secondary);
+            cursor: pointer;
+        }
+
+        .threshold-badge {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--secondary);
+            background-color: var(--secondary-light);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        /* ANALYSIS RESULTS COLUMN */
+        .results-empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            background-color: #FFFFFF;
+            border: 1px dashed var(--card-border);
+            border-radius: var(--radius-lg);
+            color: var(--text-muted);
+        }
+
+        .results-empty-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px auto;
+            color: var(--text-subtle);
+        }
+
+        .results-empty-state h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .results-container {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* OVERALL HERO BANNER */
+        .sentiment-hero-banner {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .sentiment-hero-left h4 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .sentiment-badge-lg {
+            font-size: 18px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: var(--radius-md);
+            margin-top: 6px;
+        }
+
+        .badge-positive {
+            background-color: var(--pos-bg);
+            color: #065F46;
+            border: 1px solid var(--pos-border);
+        }
+
+        .badge-negative {
+            background-color: var(--neg-bg);
+            color: #991B1B;
+            border: 1px solid var(--neg-border);
+        }
+
+        .badge-neutral {
+            background-color: var(--neu-bg);
+            color: #92400E;
+            border: 1px solid var(--neu-border);
+        }
+
+        .sentiment-hero-compound {
+            text-align: right;
+        }
+
+        .sentiment-hero-compound .val {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: monospace;
+        }
+
+        .sentiment-hero-compound .lbl {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* METRICS 5-TILE GRID */
+        .metrics-five-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+        }
+
+        .metric-mini-tile {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-mini-tile .tile-lbl {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .metric-mini-tile .tile-val {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: monospace;
+        }
+
+        /* SENTENCE LEVEL SECTION */
+        .sentence-section {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+
+        .sentence-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .sentence-filter-pill {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .sentence-filter-pill.active {
+            background-color: var(--secondary-light);
+            border-color: var(--secondary);
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .sentence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .sentence-item {
+            padding: 12px 14px;
+            background-color: #F8FAFC;
+            border: 1px solid var(--card-border);
+            border-left-width: 4px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .sentence-item.border-pos { border-left-color: var(--pos); }
+        .sentence-item.border-neg { border-left-color: var(--neg); }
+        .sentence-item.border-neu { border-left-color: var(--neu); }
+
+        .sentence-badge-sm {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        /* MODEL PREDICTIONS COMPARISON */
+        .models-compare-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .model-compare-tile {
+            background-color: #F8FAFC;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .model-compare-tile .model-name {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .model-compare-tile .model-pred {
+            font-size: 13.5px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* ASPECT TAGS */
+        .aspects-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .aspect-tag {
+            font-size: 12px;
+            padding: 4px 10px;
+            background-color: #F1F5F9;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-body);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .aspect-tag.active {
+            background-color: var(--secondary-light);
+            border-color: #DDD6FE;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        /* ========================================== */
+        /* VIEW 2 & 4: DATA TABLES (MY REVIEWS / ALL) */
+        /* ========================================== */
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .table-search-input {
+            padding: 8px 14px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            width: 260px;
+            background-color: #FFFFFF;
+            outline: none;
+        }
+
+        .table-search-input:focus {
+            border-color: var(--secondary);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .select-filter {
+            padding: 7px 10px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            background-color: #FFFFFF;
+            color: var(--text-body);
+            outline: none;
+        }
+
+        .data-table-container {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #F8FAFC;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-body);
+            vertical-align: middle;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background-color: #F8FAFC;
+        }
+
+        .table-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-top: 1px solid var(--card-border);
+            font-size: 12.5px;
+            color: var(--text-muted);
+            background-color: #FFFFFF;
+        }
+
+        .btn-page {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-body);
+        }
+
+        .btn-page:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ========================================== */
+        /* VIEW 3: DASHBOARD METRICS & CHARTS        */
+        /* ========================================== */
+        .dashboard-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-subtle);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--text-muted);
+            font-size: 12.5px;
+            font-weight: 500;
+        }
+
+        .kpi-body {
+            margin-top: 12px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+
+        .kpi-count {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .kpi-pct-badge {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        .dashboard-charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-charts-grid {
+                grid-template-columns: 1fr;
             }
-            .sentiq-logo-wrapper {
-                animation: none !important;
-                opacity: 1 !important;
-                transform: none !important;
+        }
+
+        .chart-box {
+            position: relative;
+            height: 260px;
+            width: 100%;
+        }
+
+        /* PRIORITY & ASPECT ANALYTICS BARS */
+        .progress-bar-row {
+            margin-bottom: 12px;
+        }
+
+        .progress-bar-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            margin-bottom: 4px;
+        }
+
+        .progress-track {
+            height: 7px;
+            background-color: #F1F5F9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* MODAL STYLING */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background-color: #FFFFFF;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 680px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-float);
+            padding: 24px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 14px;
+            margin-bottom: 16px;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+
+        /* TOAST CONTAINER */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 99999;
+        }
+
+        .toast-msg {
+            background-color: var(--primary);
+            color: #FFFFFF;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            box-shadow: var(--shadow-card);
+            animation: slideInRight 0.2s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* SPINNER */
+        .btn-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #FFFFFF;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE TOGGLES */
+        @media (max-width: 900px) {
+            .app-sidebar {
+                transform: translateX(-100%);
             }
-            .sentiq-intro-tagline {
-                animation: none !important;
-                opacity: 1 !important;
-                transform: none !important;
+            .app-sidebar.open {
+                transform: translateX(0);
+                box-shadow: var(--shadow-float);
+            }
+            .app-main {
+                margin-left: 0;
+            }
+            .topbar-menu-btn {
+                display: block;
             }
         }
     </style>
 </head>
 <body>
     <!-- ========================================== -->
-    <!-- SENTIQ BRANDED STARTUP INTRO SCREEN       -->
+    <!-- SENTIQ STARTUP INTRO SCREEN               -->
     <!-- ========================================== -->
     <div id="sentiqIntroOverlay" class="sentiq-intro-overlay" aria-hidden="true">
         <div class="sentiq-intro-content">
@@ -1705,646 +2108,655 @@ def get_interactive_dashboard():
         </div>
     </div>
 
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <div class="header-title" style="display: flex; align-items: center; gap: 16px;">
-                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq" style="height: 44px; width: auto; object-fit: contain; border-radius: 4px;">
-                <div>
-                    <h1 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                        Sentiq <span style="font-size: 15px; font-weight: 600; color: #6D28D9;">Review Intelligence</span>
-                        <span style="font-size: 12px; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-weight: 700;">v3.0</span>
-                    </h1>
-                    <p style="margin: 3px 0 0 0; color: #64748b; font-size: 13px;">Every Review Has a Story. We Decode It. — Natural Language Processing & Multi-Format Intelligence</p>
+    <!-- MAIN SAAS SHELL -->
+    <div class="app-shell">
+        <!-- FIXED VERTICAL SIDEBAR -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq Logo" class="sidebar-logo-img">
+                <div class="sidebar-brand-text">
+                    <h1>Sentiq</h1>
+                    <p>Review Intelligence</p>
                 </div>
             </div>
-            <div class="header-actions">
-                <button onclick="openDocModal()" class="btn-link" title="Open Technical Reference Documentation">
-                    📖 Technical Reference
+
+            <!-- PRIMARY 4 NAVIGATION ITEMS -->
+            <nav class="sidebar-nav">
+                <button class="sidebar-nav-item active" id="nav-new-review" onclick="navigateTo('new-review')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>New Review</span>
                 </button>
-                <a href="/api/export-history-csv" class="btn-link" title="Download Historical Analyses in CSV format">
-                    📥 History CSV
-                </a>
-                <button onclick="window.print()" class="btn-link" title="Print Current View">
-                    🖨️ Print
+
+                <button class="sidebar-nav-item" id="nav-my-reviews" onclick="navigateTo('my-reviews')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>My Reviews</span>
                 </button>
-            </div>
-        </header>
 
-        <!-- System Architecture Bar -->
-        <div class="info-card">
-            <div class="info-card-left">
-                <div>⚡ <strong>Architecture:</strong> Multi-Engine Consensus (VADER + TextBlob + TF-IDF ML)</div>
-                <div>📁 <strong>Supported Formats:</strong> .DOCX, .DOC, .PDF, .CSV, .XLSX, .XLS, .TXT</div>
-            </div>
-            <div>
-                <span class="info-badge">NLTK VADER</span>
-                <span class="info-badge">TextBlob</span>
-                <span class="info-badge">Scikit-Learn (LR + MNB)</span>
-                <span class="info-badge">SQLite</span>
-            </div>
-        </div>
+                <button class="sidebar-nav-item" id="nav-dashboard" onclick="navigateTo('dashboard')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                    <span>Dashboard</span>
+                </button>
 
-        <!-- Mode Tabs -->
-        <div class="tab-bar">
-            <button class="tab-btn active" id="singleTabBtn" onclick="switchTab('single')">
-                📝 Single Review Analysis
-            </button>
-            <button class="tab-btn" id="batchTabBtn" onclick="switchTab('batch')">
-                📋 Batch Review Analysis & Multi-Format File Upload
-            </button>
-        </div>
+                <button class="sidebar-nav-item" id="nav-reviews" onclick="navigateTo('reviews')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <span>Reviews</span>
+                </button>
+            </nav>
 
-        <!-- ========================================== -->
-        <!-- SECTION A: SINGLE REVIEW ANALYSIS (Text-Only) -->
-        <!-- ========================================== -->
-        <div id="singleModeSection">
-            <div class="grid-2">
-                <!-- Input Column -->
-                <div class="card">
-                    <h2>
-                        <span>✍️ Single Review Input</span>
-                        <button class="btn-mic" id="micBtn" onclick="toggleSpeechRecognition()" title="Voice Review Input via Microphone">
-                            🎙️ <span id="micText">Speak Review</span>
-                        </button>
-                    </h2>
-                    
-                    <label for="sampleDropdown">📌 Preset Test Sample (Optional):</label>
-                    <select id="sampleDropdown" onchange="handleSampleSelect(this.value)">
-                        <option value="">-- Choose a pre-written test review --</option>
-                        <option value="samsung_a55">📱 Samsung Galaxy A55 (5-Sentence Long Paragraph)</option>
-                        <option value="tech_pos">📱 Smart Phone (Positive) - Battery & Screen</option>
-                        <option value="tech_neg">💻 Laptop Overheating (Negative Defect)</option>
-                        <option value="food_pos">🍕 Restaurant Delivery (Positive Experience)</option>
-                        <option value="ecom_neg">📦 E-Commerce Shipping Delay (Complaint)</option>
-                        <option value="spec_neu">📏 Neutral Specification & Dimensions</option>
-                        <option value="support_neg">📞 Customer Support (Negative Rude Behavior)</option>
-                        <option value="negation_pos">💡 Negation Handled ("Not bad at all, actually quite good!")</option>
-                        <option value="negation_neg">⚠️ Negation Handled ("The camera is not good.")</option>
-                    </select>
-
-                    <label for="reviewInput">Customer Review Text:</label>
-                    <textarea id="reviewInput" placeholder="Paste or type a product review here..."></textarea>
-
-                    <!-- Interactive Controls: Threshold Slider & Stopwords Filter -->
-                    <div class="controls-row">
-                        <div class="slider-group">
-                            <label style="margin:0; font-size:12.5px;">🎚️ VADER Threshold Cutoff: <strong id="thresholdDisplay" style="color:var(--primary);">+0.05</strong></label>
-                            <input type="range" id="thresholdSlider" min="0.0" max="0.5" step="0.05" value="0.05" oninput="updateThreshold(this.value)">
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <label style="margin:0; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                                <input type="checkbox" id="stopwordToggle" onchange="toggleStopwordsDisplay(this.checked)" checked>
-                                🔤 Dim / Cross-out Filtered Stop-Words
-                            </label>
-                            <span style="font-size:11.5px; color:var(--text-muted);">(Real-time Preprocessing Control)</span>
-                        </div>
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-card">
+                    <div class="sidebar-status-row">
+                        <span><span class="status-dot"></span>Sentiq v3.0</span>
+                        <span style="font-weight:600; color:var(--pos);">Active</span>
                     </div>
-
-                    <div id="singleErrorAlert" style="display:none; padding:10px 14px; margin-bottom:14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; color:#b91c1c; font-size:13px;"></div>
-
-                    <button class="btn-primary" id="analyzeBtn" onclick="triggerAnalyze()">
-                        <div class="spinner" id="analyzeSpinner"></div>
-                        <span id="analyzeBtnText">⚡ Analyze Sentiment</span>
+                    <button onclick="openDocModal()" class="btn-secondary" style="font-size:12px; padding:6px 10px; justify-content:center;">
+                        📖 Technical Reference
                     </button>
                 </div>
+            </div>
+        </aside>
 
-                <!-- Single Diagnostics / Results Column -->
-                <div class="card" id="resultsCard">
-                    <h2>
-                        <span>📊 Sentiment Diagnostics</span>
-                        <span id="statusIndicator" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Ready</span>
-                    </h2>
+        <!-- MAIN WORKSPACE -->
+        <main class="app-main">
+            <!-- TOPBAR -->
+            <header class="app-topbar">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <div class="topbar-title-wrap">
+                        <h2 id="pageMainHeading">New Review</h2>
+                        <p id="pageMainSubtitle">Enter customer feedback to understand its sentiment.</p>
+                    </div>
+                </div>
 
-                    <div id="emptyPlaceholder" style="text-align: center; padding: 45px 0; color: var(--text-muted);">
-                        <div style="font-size: 34px; margin-bottom: 8px;">🔍</div>
-                        <p style="font-size: 14px;">Enter text above and click <strong>Analyze Sentiment</strong>.</p>
+                <div class="topbar-actions">
+                    <a href="/api/export-history-csv" class="btn-secondary" id="exportHistoryBtn" title="Download SQLite Historical Sentiment Analyses">
+                        📥 Export History CSV
+                    </a>
+                </div>
+            </header>
+
+            <div class="app-content">
+                <!-- ============================================================== -->
+                <!-- 1. VIEW: NEW REVIEW (WORKSPACE)                               -->
+                <!-- ============================================================== -->
+                <div class="app-view active" id="view-new-review">
+                    <!-- Segmented sub-tabs for Single Review vs Batch Analysis -->
+                    <div class="segmented-control">
+                        <button class="segmented-btn active" id="singleTabBtn" onclick="switchTab('single')">
+                            Single Review
+                        </button>
+                        <button class="segmented-btn" id="batchTabBtn" onclick="switchTab('batch')">
+                            Batch & Multi-Format File Upload
+                        </button>
                     </div>
 
-                    <div id="resultContent" style="display: none;">
-                        <!-- 1. Overall Sentiment Card -->
-                        <div style="background:#ffffff; border:1px solid var(--card-border); border-left:5px solid #4f46e5; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                                <div>
-                                    <div class="metric-title">Final Overall Sentiment</div>
-                                    <div id="sentimentBadgeContainer" style="margin-top:4px;"></div>
+                    <!-- SUBMODE A: SINGLE REVIEW (TEXT-ONLY) -->
+                    <div id="singleModeSection">
+                        <div class="workspace-grid">
+                            <!-- LEFT COLUMN: INPUT -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Customer Feedback Input</h3>
+                                    <button class="btn-mic-clean" id="micBtn" onclick="toggleSpeechRecognition()" title="Voice input via microphone">
+                                        <span>🎙️</span>
+                                        <span id="micText">Speak Review</span>
+                                    </button>
                                 </div>
-                                <div>
-                                    <div class="metric-title">Mean VADER Compound</div>
-                                    <div id="meanCompoundVal" style="font-size:1.35rem; font-weight:800; color:#4f46e5;">+0.0000</div>
-                                </div>
-                                <div>
-                                    <div class="metric-title">Selected Threshold (T)</div>
-                                    <div id="selectedThresholdVal" style="font-size:1.1rem; font-weight:700; color:#334155;">±0.05</div>
-                                </div>
-                                <div>
-                                    <div class="metric-title">Urgency Priority</div>
-                                    <div id="priorityVal" style="font-size:1.1rem; font-weight:700;">Normal</div>
-                                </div>
-                                <div id="singleConfidenceCard">
-                                    <div class="metric-title">ML Confidence (LR)</div>
-                                    <div id="singleConfidenceVal" style="font-size:1.1rem; font-weight:700; color:#4f46e5;">N/A</div>
-                                </div>
-                            </div>
-                            <div id="singleExplanationCard" class="explanation-box" style="margin-top:12px;">
-                                <div id="overallCalcExplanation"></div>
-                            </div>
-                        </div>
 
-                        <!-- 2. Sentence Summary Cards (4 Cards) -->
-                        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:16px;">
-                            <div class="metric-tile">
-                                <div class="metric-title">Total Sentences</div>
-                                <div class="metric-value" id="totalSentencesVal">0</div>
-                            </div>
-                            <div class="metric-tile" style="border-left:3px solid var(--accent-pos);">
-                                <div class="metric-title" style="color:var(--accent-pos);">Positive Sentences</div>
-                                <div class="metric-value" id="posSentencesVal" style="color:var(--accent-pos); font-size:15px;">0 (0%)</div>
-                            </div>
-                            <div class="metric-tile" style="border-left:3px solid var(--accent-neg);">
-                                <div class="metric-title" style="color:var(--accent-neg);">Negative Sentences</div>
-                                <div class="metric-value" id="negSentencesVal" style="color:var(--accent-neg); font-size:15px;">0 (0%)</div>
-                            </div>
-                            <div class="metric-tile" style="border-left:3px solid var(--accent-neu);">
-                                <div class="metric-title" style="color:var(--accent-neu);">Neutral Sentences</div>
-                                <div class="metric-value" id="neuSentencesVal" style="color:var(--accent-neu); font-size:15px;">0 (0%)</div>
-                            </div>
-                        </div>
+                                <div class="form-group">
+                                    <label for="sampleDropdown">📌 Preset Test Sample (Optional):</label>
+                                    <select class="sample-select" id="sampleDropdown" onchange="handleSampleSelect(this.value)">
+                                        <option value="">-- Choose a pre-written test review --</option>
+                                        <option value="samsung_a55">📱 Samsung Galaxy A55 (5-Sentence Long Paragraph)</option>
+                                        <option value="tech_pos">🔋 Flagship Phone (Positive Battery & Display)</option>
+                                        <option value="tech_neg">💻 Laptop Overheating (Negative Defect)</option>
+                                        <option value="food_pos">🍕 Food Delivery (Fast & Fresh Positive)</option>
+                                        <option value="ecom_neg">📦 Shipping Delay & Broken Item (Complaint)</option>
+                                        <option value="spec_neu">📐 Product Dimension & Cable Specs (Neutral)</option>
+                                        <option value="support_neg">📞 Customer Support (Negative Rude Service)</option>
+                                        <option value="negation_pos">✨ Negation ("Not bad at all, actually quite good!")</option>
+                                        <option value="negation_neg">❌ Negation ("The camera is not good.")</option>
+                                    </select>
+                                </div>
 
-                        <!-- 3. Sentence Sentiment Distribution Chart & Model Consensus -->
-                        <div style="display:grid; grid-template-columns:160px 1fr; gap:16px; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:16px;">
-                            <div style="height:150px; width:150px; position:relative; margin:0 auto;">
-                                <canvas id="sentimentPieChart"></canvas>
+                                <div class="form-group">
+                                    <label for="reviewInput">Review Text <span style="font-weight:400; color:var(--text-muted);">(Paste or type a product review here...)</span></label>
+                                    <div class="review-textarea-wrapper">
+                                        <textarea class="review-textarea" id="reviewInput" placeholder="Paste or type a product review here... Write or paste a customer review here to analyze sentiment, aspects, and sentences." oninput="updateCharCount()"></textarea>
+                                        <div class="textarea-meta-bar">
+                                            <span id="charCount">0 characters</span>
+                                            <button type="button" class="btn-ghost" onclick="clearReviewInput()">Clear</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-panel">
+                                    <div class="slider-row">
+                                        <span style="font-weight:600; font-size:12.5px;">VADER Compound Threshold:</span>
+                                        <input type="range" id="thresholdSlider" min="0.0" max="0.5" step="0.01" value="0.05" oninput="updateThreshold(this.value)">
+                                        <span class="threshold-badge" id="thresholdVal">±0.05</span>
+                                    </div>
+                                    <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                                        <input type="checkbox" id="stopwordsCheckbox" onchange="toggleStopwordsDisplay(this.checked)">
+                                        <label for="stopwordsCheckbox" style="font-size:12px; color:var(--text-muted); cursor:pointer;">Highlight informative keywords</label>
+                                    </div>
+                                </div>
+
+                                <div id="singleErrorAlert" style="display:none; padding:10px 14px; background-color:var(--neg-bg); border:1px solid var(--neg-border); color:var(--neg); border-radius:var(--radius-sm); font-size:13px; margin-bottom:14px;"></div>
+
+                                <button id="analyzeBtn" class="btn-primary-purple" style="width:100%;" onclick="triggerAnalyze()">
+                                    <span class="btn-spinner" id="analyzeSpinner" style="display:none;"></span>
+                                    <span id="analyzeBtnText">⚡ Analyze Sentiment</span>
+                                </button>
                             </div>
+
+                            <!-- RIGHT COLUMN: ANALYSIS RESULTS -->
                             <div>
-                                <div class="metric-title" style="margin-bottom:6px;">⚖️ Multi-Model Consensus (Review Level):</div>
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; font-weight:600;">
-                                    <div>VADER: <span id="cmpVader" style="color:#4f46e5; font-weight:700;">-</span></div>
-                                    <div>LogReg (TF-IDF): <span id="cmpLR" style="color:#059669; font-weight:700;">-</span></div>
-                                    <div>Naive Bayes: <span id="cmpNB" style="color:#6366f1; font-weight:700;">-</span></div>
-                                    <div>TextBlob: <span id="cmpTB" style="color:#d97706; font-weight:700;">-</span></div>
+                                <!-- EMPTY PLACEHOLDER -->
+                                <div class="results-empty-state" id="emptyPlaceholder">
+                                    <svg class="results-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    <h4>Your analysis will appear here.</h4>
+                                    <p style="font-size:13px; max-width:340px; margin:0 auto;">Enter or speak customer feedback on the left and click Analyze to view overall sentiment, metrics, and sentence breakdown.</p>
                                 </div>
-                                <div id="disagreementAlert" style="display:none;" class="disagreement-box"></div>
-                                <div id="recommendationAlert" class="recommendation-box" style="margin-top:8px; padding:8px 12px; font-size:12px;"></div>
+
+                                <!-- RESULTS CONTAINER -->
+                                <div class="results-container" id="singleResultsCard">
+                                    <!-- OVERALL HERO BANNER -->
+                                    <div class="sentiment-hero-banner">
+                                        <div class="sentiment-hero-left">
+                                            <h4>Predicted Sentiment</h4>
+                                            <span class="sentiment-badge-lg badge-positive" id="singleSentimentBadge">Positive</span>
+                                        </div>
+                                        <div class="sentiment-hero-compound">
+                                            <div class="val" id="singleCompoundScore">+0.0000</div>
+                                            <div class="lbl">Compound Score</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5-TILE METRICS GRID -->
+                                    <div class="metrics-five-grid">
+                                        <div class="metric-mini-tile">
+                                            <div class="tile-lbl">ML Confidence</div>
+                                            <div class="tile-val" id="singleConfidence">--</div>
+                                        </div>
+                                        <div class="metric-mini-tile">
+                                            <div class="tile-lbl">VADER Compound</div>
+                                            <div class="tile-val" id="singleVaderCompound">--</div>
+                                        </div>
+                                        <div class="metric-mini-tile">
+                                            <div class="tile-lbl">TB Polarity</div>
+                                            <div class="tile-val" id="singlePolarity">--</div>
+                                        </div>
+                                        <div class="metric-mini-tile">
+                                            <div class="tile-lbl">TB Subjectivity</div>
+                                            <div class="tile-val" id="singleSubjectivity">--</div>
+                                        </div>
+                                        <div class="metric-mini-tile">
+                                            <div class="tile-lbl">Urgency Priority</div>
+                                            <div class="tile-val" id="singlePriorityBadge" style="font-size:13px;">Low</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- SENTENCE LEVEL ANALYSIS -->
+                                    <div class="sentence-section">
+                                        <div class="card-header" style="margin-bottom:10px;">
+                                            <h3>Sentence-Level Breakdown</h3>
+                                            <span id="sentenceCountBadge" style="font-size:12px; color:var(--text-muted);">0 sentences</span>
+                                        </div>
+
+                                        <div class="sentence-filter-bar">
+                                            <button class="sentence-filter-pill active" onclick="setSentenceTableFilter('All', this)">All</button>
+                                            <button class="sentence-filter-pill" onclick="setSentenceTableFilter('Positive', this)">Positive</button>
+                                            <button class="sentence-filter-pill" onclick="setSentenceTableFilter('Negative', this)">Negative</button>
+                                            <button class="sentence-filter-pill" onclick="setSentenceTableFilter('Neutral', this)">Neutral</button>
+                                        </div>
+
+                                        <div class="sentence-list" id="singleSentenceTableBody">
+                                            <!-- Injected dynamically -->
+                                        </div>
+                                    </div>
+
+                                    <!-- MODEL PREDICTIONS COMPARISON -->
+                                    <div class="card" style="padding:18px;">
+                                        <div class="card-header" style="margin-bottom:6px;">
+                                            <h3>Model Predictions vs Consensus</h3>
+                                            <span style="font-size:11.5px; color:var(--text-muted);">Multi-Model Agreement</span>
+                                        </div>
+                                        <div class="models-compare-grid">
+                                            <div class="model-compare-tile">
+                                                <div class="model-name">VADER Lexicon</div>
+                                                <div class="model-pred" id="modelPredVader">--</div>
+                                            </div>
+                                            <div class="model-compare-tile">
+                                                <div class="model-name">TextBlob Rule</div>
+                                                <div class="model-pred" id="modelPredTextBlob">--</div>
+                                            </div>
+                                            <div class="model-compare-tile">
+                                                <div class="model-name">Logistic Reg.</div>
+                                                <div class="model-pred" id="modelPredLR">--</div>
+                                            </div>
+                                            <div class="model-compare-tile">
+                                                <div class="model-name">Naive Bayes</div>
+                                                <div class="model-pred" id="modelPredNB">--</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- DETECTED ASPECTS -->
+                                    <div class="card" style="padding:18px;">
+                                        <h3 style="font-size:14px; margin-bottom:6px;">Aspect Extraction</h3>
+                                        <div class="aspects-row" id="aspectBadgesWrap">
+                                            <span class="aspect-tag" id="aspectQuality">📦 Product Quality</span>
+                                            <span class="aspect-tag" id="aspectShipping">🚚 Delivery & Shipping</span>
+                                            <span class="aspect-tag" id="aspectSupport">💬 Customer Support</span>
+                                            <span class="aspect-tag" id="aspectPricing">💰 Pricing & Value</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- ACTION RECOMMENDATION & EXPLANATION -->
+                                    <div class="card" id="singleExplanationCard" style="padding:18px; border-left:4px solid var(--secondary);">
+                                        <h3 style="font-size:14px; margin-bottom:6px;">Action Recommendation</h3>
+                                        <p id="singleRecommendationText" style="font-size:13px; color:var(--text-body); margin-bottom:8px;">--</p>
+                                        <p id="singleExplanationText" style="font-size:12px; color:var(--text-muted); line-height:1.6;">--</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBMODE B: BATCH & MULTI-FORMAT FILE UPLOAD -->
+                    <div id="batchModeSection" style="display:none;">
+                        <div class="card" style="margin-bottom:24px;">
+                            <div class="card-header">
+                                <h3>Batch Review Analysis & Multi-Format File Upload</h3>
+                                <span style="font-size:12px; color:var(--text-muted);">Supported: .DOCX, .DOC, .PDF, .CSV, .XLSX, .XLS, .TXT</span>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                                <!-- OPTION 1: FILE UPLOAD -->
+                                <div style="background:#F8FAFC; border:1px dashed var(--card-border); border-radius:var(--radius-md); padding:20px; text-align:center;">
+                                    <h4 style="font-size:14px; margin-bottom:8px;">Option 1: Upload a File</h4>
+                                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Upload any customer review document or spreadsheet.</p>
+                                    <input type="file" id="multiFileInput" accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt" style="display:none;" onchange="handleFileSelected(this.files)">
+                                    <button class="btn-secondary" onclick="document.getElementById('multiFileInput').click()" style="margin-bottom:10px;">
+                                        📁 Choose Document File
+                                    </button>
+                                    <div id="selectedFileName" style="font-size:12px; color:var(--text-muted); font-weight:500;">No file chosen</div>
+
+                                    <div style="margin-top:14px; text-align:left;">
+                                        <label for="docModeSelect" style="font-size:12px; font-weight:600; color:var(--text-main);">Parser Extraction Mode:</label>
+                                        <select id="docModeSelect" class="sample-select" style="margin-top:4px;">
+                                            <option value="auto">Auto-Detect Structure</option>
+                                            <option value="csv_column">CSV Review Column</option>
+                                            <option value="newline">Line by Line</option>
+                                            <option value="paragraph">Paragraph Blocks</option>
+                                        </select>
+                                    </div>
+
+                                    <button id="uploadFileBtn" class="btn-primary-purple" style="margin-top:14px; width:100%;" onclick="uploadMultiFormatFile()">
+                                        <span class="btn-spinner" id="uploadFileSpinner" style="display:none;"></span>
+                                        <span id="uploadFileBtnText">⚡ Upload & Analyze Document</span>
+                                    </button>
+                                </div>
+
+                                <!-- OPTION 2: PASTE BULK -->
+                                <div style="background:#F8FAFC; border:1px solid var(--card-border); border-radius:var(--radius-md); padding:20px;">
+                                    <h4 style="font-size:14px; margin-bottom:8px;">Option 2: Paste Multiple Reviews</h4>
+                                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Paste customer reviews separated by line breaks.</p>
+                                    <textarea id="batchPasteInput" style="width:100%; height:120px; padding:10px; border:1px solid var(--card-border); border-radius:var(--radius-sm); font-size:13px; resize:vertical;" placeholder="1. Great service and fast delivery!&#10;2. Product overheats and stopped working.&#10;3. Average quality for the price."></textarea>
+                                    <button id="batchPasteBtn" class="btn-primary-purple" style="margin-top:10px; width:100%;" onclick="triggerPastedBatchAnalyze()">
+                                        <span class="btn-spinner" id="batchPasteSpinner" style="display:none;"></span>
+                                        <span id="batchPasteBtnText">⚡ Process All Reviews in Bulk</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- 4. Sentence-Level Results Table with Interactive Filters -->
-                        <div style="margin-top:16px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-                                <div class="metric-title" style="font-size:12.5px;">📑 Sentence-Level Results Table:</div>
-                                <div style="display:flex; gap:6px; align-items:center;">
-                                    <span style="font-size:11.5px; color:var(--text-muted); font-weight:600;">Filter:</span>
-                                    <button class="filter-btn active" id="sentFilterAll" onclick="setSentenceTableFilter('All')">All</button>
-                                    <button class="filter-btn" id="sentFilterPos" onclick="setSentenceTableFilter('Positive')">Positive</button>
-                                    <button class="filter-btn" id="sentFilterNeg" onclick="setSentenceTableFilter('Negative')">Negative</button>
-                                    <button class="filter-btn" id="sentFilterNeu" onclick="setSentenceTableFilter('Neutral')">Neutral</button>
+                        <!-- BATCH RESULTS DISPLAY -->
+                        <div id="batchResultsDashboard" style="display:none;">
+                            <div class="dashboard-kpi-grid">
+                                <div class="kpi-card">
+                                    <div class="kpi-header"><span>Total Processed</span></div>
+                                    <div class="kpi-body"><span class="kpi-count" id="batchTotalCount">0</span></div>
+                                </div>
+                                <div class="kpi-card">
+                                    <div class="kpi-header"><span>Positive</span><span class="kpi-pct-badge badge-positive" id="batchPosPct">0%</span></div>
+                                    <div class="kpi-body"><span class="kpi-count" style="color:var(--pos);" id="batchPosCount">0</span></div>
+                                </div>
+                                <div class="kpi-card">
+                                    <div class="kpi-header"><span>Negative</span><span class="kpi-pct-badge badge-negative" id="batchNegPct">0%</span></div>
+                                    <div class="kpi-body"><span class="kpi-count" style="color:var(--neg);" id="batchNegCount">0</span></div>
+                                </div>
+                                <div class="kpi-card">
+                                    <div class="kpi-header"><span>Neutral</span><span class="kpi-pct-badge badge-neutral" id="batchNeuPct">0%</span></div>
+                                    <div class="kpi-body"><span class="kpi-count" style="color:var(--neu);" id="batchNeuCount">0</span></div>
                                 </div>
                             </div>
 
-                            <div style="overflow-x:auto; max-height:360px; overflow-y:auto; border:1px solid var(--card-border); border-radius:8px;">
-                                <table>
-                                    <thead style="position:sticky; top:0; background:#f8fafc; z-index:2;">
+                            <div class="dashboard-charts-grid">
+                                <div class="card">
+                                    <h3 style="font-size:14px; margin-bottom:12px;">Sentiment Distribution</h3>
+                                    <div class="chart-box"><canvas id="batchPieChart"></canvas></div>
+                                </div>
+                                <div class="card">
+                                    <h3 style="font-size:14px; margin-bottom:12px;">Category & Model Breakdown</h3>
+                                    <div class="chart-box"><canvas id="batchBarChart"></canvas></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="table-toolbar">
+                                    <input type="text" class="table-search-input" id="batchSearchInput" placeholder="Search batch reviews..." oninput="filterBatchTable()">
+                                    <div style="display:flex; gap:10px;">
+                                        <button class="btn-secondary" id="batchDownloadCsvBtn" onclick="downloadBatchCSV()">Download CSV</button>
+                                        <button class="btn-secondary" id="batchExportPdfBtn" onclick="downloadBatchPDF()">Export PDF Report</button>
+                                    </div>
+                                </div>
+                                <div class="data-table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Review Text</th>
+                                                <th>Sentiment</th>
+                                                <th>Compound</th>
+                                                <th>Aspects</th>
+                                                <th>Priority</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="batchTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================================== -->
+                <!-- 2. VIEW: MY REVIEWS (USER HISTORY)                            -->
+                <!-- ============================================================== -->
+                <div class="app-view" id="view-my-reviews">
+                    <div class="card" style="margin-bottom:20px;">
+                        <div class="table-toolbar">
+                            <input type="text" class="table-search-input" id="myReviewsSearch" placeholder="Search my reviews..." oninput="filterMyReviews()">
+                            <div class="filter-group">
+                                <div class="sentence-filter-bar" style="margin:0;">
+                                    <button class="sentence-filter-pill active" onclick="setMyReviewsFilter('All', this)">All</button>
+                                    <button class="sentence-filter-pill" onclick="setMyReviewsFilter('Positive', this)">Positive</button>
+                                    <button class="sentence-filter-pill" onclick="setMyReviewsFilter('Negative', this)">Negative</button>
+                                    <button class="sentence-filter-pill" onclick="setMyReviewsFilter('Neutral', this)">Neutral</button>
+                                </div>
+                                <select class="select-filter" id="myReviewsSort" onchange="filterMyReviews()">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                </select>
+                                <button class="btn-secondary" onclick="loadHistory(true)">🔄 Refresh</button>
+                            </div>
+                        </div>
+
+                        <div class="data-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Review Text</th>
+                                        <th>Sentiment</th>
+                                        <th>VADER Score</th>
+                                        <th>Confidence</th>
+                                        <th>Priority</th>
+                                        <th>Date & Time</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="myReviewsTableBody">
+                                    <tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">Loading reviews...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================================== -->
+                <!-- 3. VIEW: DASHBOARD (OVERALL ANALYTICS)                        -->
+                <!-- ============================================================== -->
+                <div class="app-view" id="view-dashboard">
+                    <div id="historicalTrendsCard">
+                        <!-- TOP 4 KPI CARDS -->
+                        <div class="dashboard-kpi-grid">
+                            <div class="kpi-card">
+                                <div class="kpi-header"><span>Total Analyzed</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                                <div class="kpi-body"><span class="kpi-count" id="kpiTotalReviews">0</span></div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header"><span>Positive Reviews</span><span class="kpi-pct-badge badge-positive" id="kpiPosPct">0%</span></div>
+                                <div class="kpi-body"><span class="kpi-count" style="color:var(--pos);" id="kpiPositiveCount">0</span></div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header"><span>Negative Reviews</span><span class="kpi-pct-badge badge-negative" id="kpiNegPct">0%</span></div>
+                                <div class="kpi-body"><span class="kpi-count" style="color:var(--neg);" id="kpiNegativeCount">0</span></div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header"><span>Neutral Reviews</span><span class="kpi-pct-badge badge-neutral" id="kpiNeuPct">0%</span></div>
+                                <div class="kpi-body"><span class="kpi-count" style="color:var(--neu);" id="kpiNeutralCount">0</span></div>
+                            </div>
+                        </div>
+
+                        <!-- CHARTS SECTION -->
+                        <div class="dashboard-charts-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Sentiment Share</h3>
+                                    <span style="font-size:11.5px; color:var(--text-muted);">Overall Distribution</span>
+                                </div>
+                                <div class="chart-box"><canvas id="dashboardDoughnutChart"></canvas></div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Historical Sentiment Trends</h3>
+                                    <div style="display:flex; gap:8px;" id="historySummaryPills">
+                                        <button class="btn-ghost" id="refreshHistoryBtn" onclick="loadHistory(true)">🔄</button>
+                                    </div>
+                                </div>
+                                <div id="historyChartEmptyState" style="display:none; text-align:center; padding:40px; color:var(--text-muted);">
+                                    No historical reviews yet. Submit a review above to see trends.
+                                </div>
+                                <div class="chart-box" id="historyChartWrapper">
+                                    <canvas id="trendLineChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ASPECT & PRIORITY ANALYTICS -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Feedback by Aspect</h3>
+                                    <span style="font-size:11.5px; color:var(--text-muted);">Top Mentions</span>
+                                </div>
+                                <div id="aspectAnalyticsBars">
+                                    <!-- Injected dynamically -->
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Priority & Urgency Overview</h3>
+                                    <span style="font-size:11.5px; color:var(--text-muted);">Action Required</span>
+                                </div>
+                                <div id="priorityAnalyticsBars">
+                                    <!-- Injected dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RECENT REVIEWS -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Recent Analyzed Customer Reviews</h3>
+                                <button class="btn-secondary" onclick="navigateTo('reviews')">View All Reviews →</button>
+                            </div>
+                            <div class="data-table-container">
+                                <table class="data-table">
+                                    <thead>
                                         <tr>
-                                            <th style="width:40px;">#</th>
-                                            <th>Sentence Text</th>
-                                            <th style="width:85px;">Sentiment</th>
-                                            <th style="width:80px;">VADER</th>
-                                            <th style="width:80px;">TextBlob</th>
-                                            <th style="width:80px;">ML (LR)</th>
+                                            <th>ID</th>
+                                            <th>Review Text</th>
+                                            <th>Sentiment</th>
+                                            <th>Priority</th>
+                                            <th>Date</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="sentenceTableBody"></tbody>
+                                    <tbody id="dashboardRecentTableBody"></tbody>
                                 </table>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- 5. Word-Level Lexicon Polarity Highlighting & Aspect Cloud -->
-                        <div style="margin-top:16px;">
-                            <label>🎨 Lexicon Word-Level Polarity Highlighting:</label>
-                            <div class="word-highlight-box" id="highlightedWordsBox"></div>
-                            <div style="display: flex; gap: 14px; font-size: 11.5px; margin-top: 6px; color: var(--text-muted); font-weight: 600;">
-                                <span><span style="color: #166534; font-weight: 900;">■</span> Green: Positive</span>
-                                <span><span style="color: #991b1b; font-weight: 900;">■</span> Red: Negative</span>
-                                <span><span style="opacity: 0.5; font-style: italic;">Strikethrough</span>: Filtered Stopword</span>
+                <!-- ============================================================== -->
+                <!-- 4. VIEW: ALL REVIEWS (MANAGEMENT TABLE)                       -->
+                <!-- ============================================================== -->
+                <div class="app-view" id="view-reviews">
+                    <div class="card">
+                        <div class="table-toolbar">
+                            <input type="text" class="table-search-input" id="allReviewsSearch" placeholder="Search across all customer reviews..." oninput="filterAllReviewsTable()">
+                            
+                            <div class="filter-group">
+                                <select class="select-filter" id="filterSentiment" onchange="filterAllReviewsTable()">
+                                    <option value="All">All Sentiments</option>
+                                    <option value="Positive">Positive</option>
+                                    <option value="Negative">Negative</option>
+                                    <option value="Neutral">Neutral</option>
+                                </select>
+
+                                <select class="select-filter" id="filterAspect" onchange="filterAllReviewsTable()">
+                                    <option value="All">All Aspects</option>
+                                    <option value="Quality">Product Quality</option>
+                                    <option value="Delivery">Delivery & Shipping</option>
+                                    <option value="Support">Customer Support</option>
+                                    <option value="Pricing">Pricing & Value</option>
+                                </select>
+
+                                <select class="select-filter" id="filterPriority" onchange="filterAllReviewsTable()">
+                                    <option value="All">All Priorities</option>
+                                    <option value="Urgent">Urgent</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+
+                                <select class="select-filter" id="filterSort" onchange="filterAllReviewsTable()">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="compound_high">Highest Compound</option>
+                                    <option value="compound_low">Lowest Compound</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div style="margin-top: 14px;">
-                            <div class="metric-title">☁️ Extracted Aspect Keywords:</div>
-                            <div class="bubble-cloud" id="bubbleCloudContainer"></div>
+                        <div class="data-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Review Preview</th>
+                                        <th>Sentiment</th>
+                                        <th>VADER Compound</th>
+                                        <th>ML Confidence</th>
+                                        <th>Aspects</th>
+                                        <th>Priority</th>
+                                        <th>Date</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- ============================================================== -->
-        <!-- SECTION B: BATCH REVIEW ANALYSIS & MULTI-FORMAT FILE UPLOAD    -->
-        <!-- ============================================================== -->
-        <div id="batchModeSection" style="display: none;">
-            <div class="card">
-                <h2>
-                    <span>📋 Batch Review Analysis & Multi-Format File Upload</span>
-                    <span style="font-size:12px; color:var(--text-muted); font-weight:500;">Processes files & bulk reviews without manual copy-pasting</span>
-                </h2>
-
-                <!-- Option 1: Upload a File -->
-                <div class="batch-option-box" id="boxUploadOption">
-                    <h3 style="font-size:14px; color:#1e293b; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                        <span>📁 Option 1: Upload a File</span>
-                        <span style="font-size:11px; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:10px; font-weight:700;">
-                            CSV, TXT, PDF, DOCX, DOC, XLSX, XLS
-                        </span>
-                    </h3>
-                    
-                    <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr; gap:12px; align-items:end;">
-                        <div>
-                            <label for="multiFileInput">Select Document / Spreadsheet:</label>
-                            <input type="file" id="multiFileInput" accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt" style="margin-bottom:0; background:#fff;">
-                        </div>
-                        <div>
-                            <label for="docModeSelect">Review Boundary Detection:</label>
-                            <select id="docModeSelect" style="margin-bottom:0; background:#fff;">
-                                <option value="auto">🔍 Auto-Detect (Recommended)</option>
-                                <option value="multiple">📑 Multiple Reviews (Numbered, Rows, Bulleted)</option>
-                                <option value="single">📄 Single Review (Entire Document as 1)</option>
-                                <option value="paragraph">¶ Paragraphs (Split by Blank Lines)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="csvColumnInput">Review Column Name (Optional):</label>
-                            <input type="text" id="csvColumnInput" placeholder="Auto-detect (e.g. review, comment)" style="margin-bottom:0; background:#fff;">
-                        </div>
-                    </div>
-
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:10px;">
-                        <span style="font-size:12px; color:var(--text-muted);">
-                            Supports multi-page PDFs, tables in Word/DOCX, worksheets in Excel, and automatic column detection.
-                        </span>
-                        <button class="btn-primary" style="width:auto; padding:10px 22px;" id="uploadFileBtn" onclick="uploadMultiFormatFile()">
-                            <div class="spinner" id="batchUploadSpinner" style="display:none;"></div>
-                            <span id="uploadBtnText">📁 Upload & Process File</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Option 2: Paste Multiple Reviews -->
-                <div class="batch-option-box" id="boxPasteOption">
-                    <h3 style="font-size:14px; color:#1e293b; margin-bottom:10px;">
-                        ✍️ Option 2: Paste Multiple Reviews
-                    </h3>
-                    <label for="batchInput">Paste multiple reviews below (one review per line, numbered 1. 2. 3., or separated by empty lines):</label>
-                    <textarea id="batchInput" style="height: 110px;" placeholder="1. The product quality is outstanding and arrived quickly!&#10;2. Very disappointing battery life, stopped working after two days.&#10;3. The customer support agent was helpful and solved my issue.&#10;4. The device dimensions are 15cm by 10cm."></textarea>
-                    
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <label style="margin:0; font-size:12.5px;">Split Strategy:</label>
-                            <select id="pastedModeSelect" style="width:auto; margin:0; padding:6px 10px; font-size:12.5px; background:#fff;">
-                                <option value="auto">Auto-detect (Numbered / Line / Paragraph)</option>
-                                <option value="multiple">Line-by-Line</option>
-                                <option value="paragraph">Paragraphs (Double Newline)</option>
-                                <option value="single">Treat as Single Review</option>
-                            </select>
-                        </div>
-                        <button class="btn-primary" style="width:auto; padding:10px 22px;" id="processPastedBtn" onclick="triggerPastedBatchAnalyze()">
-                            <div class="spinner" id="batchPasteSpinner" style="display:none;"></div>
-                            <span id="processPastedBtnText">⚡ Process All Reviews in Bulk</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Error Alert Box -->
-                <div id="batchErrorAlert" style="display: none; padding: 12px 16px; margin-bottom: 16px; background: #fef2f2; border: 1px solid #f87171; border-radius: 8px; color: #b91c1c; font-size: 13.5px;"></div>
-
-                <!-- Diagnostics & Extraction Summary Banner -->
-                <div id="batchDiagnosticsCard" style="display: none; margin-bottom: 20px; padding: 16px 20px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h4 style="color: #166534; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔍 Document Extraction Diagnostics</span>
-                            <span id="diagFormatBadge" style="background: #bbf7d0; color: #166534; font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 700;">DOCX</span>
-                        </h4>
-                        <span id="diagStatusBadge" style="font-size:11.5px; color:#15803d; font-weight:700;">Extraction Verified ✓</span>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; font-size: 12.5px; color: #1e293b;">
-                        <div><strong>File Name:</strong> <span id="diagFilename">-</span></div>
-                        <div><strong>File Size:</strong> <span id="diagSize">-</span></div>
-                        <div><strong>Characters:</strong> <span id="diagChars">0</span></div>
-                        <div><strong>Words:</strong> <span id="diagWords">0</span></div>
-                        <div><strong>Identified Reviews:</strong> <span id="diagIdentified" style="color: #15803d; font-weight: 700;">0</span></div>
-                        <div><strong>Processing Mode:</strong> <span id="diagMode">auto</span></div>
-                        <div><strong>Review Column:</strong> <span id="diagColumn" style="color: #4f46e5; font-weight: 700;">Auto</span></div>
-                    </div>
-
-                    <div id="diagWarningAlert" style="display:none; margin-top:10px; padding:8px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; color:#b45309; font-size:12px;"></div>
-
-                    <div style="margin-top: 10px; font-size: 12px; color: #475569; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #bbf7d0;">
-                        <strong>Text Preview:</strong> <span id="diagPreview">-</span>
-                    </div>
-                </div>
-
-                <!-- Batch Results Container -->
-                <div id="batchResultsContainer" style="display: none;">
-                    <!-- Document-Wide Sentence-Level Distribution Banner -->
-                    <div id="batchSentenceSummaryBanner" style="display: none; background: #ffffff; border: 1px solid #cbd5e1; border-left: 5px solid #3b82f6; border-radius: 8px; padding: 12px 18px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                            <div style="font-weight: 700; color: #1e40af; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
-                                <span>📑 Document-Wide Sentence Distribution:</span>
-                                <span id="batchSentTotalCount" style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 11.5px;">0 sentences</span>
-                            </div>
-                            <div style="display: flex; gap: 16px; font-size: 12.5px; font-weight: 600; flex-wrap: wrap;">
-                                <span style="color: var(--accent-pos);">Positive: <strong id="batchSentPosCount">0 (0%)</strong></span>
-                                <span style="color: var(--accent-neg);">Negative: <strong id="batchSentNegCount">0 (0%)</strong></span>
-                                <span style="color: var(--accent-neu);">Neutral: <strong id="batchSentNeuCount">0 (0%)</strong></span>
-                                <span style="color: #4f46e5;">Mean Compound: <strong id="batchSentMeanScore">+0.0000</strong></span>
+                        <div class="table-pagination">
+                            <span id="allReviewsPaginationInfo">Showing 0 reviews</span>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-page" id="prevPageBtn" onclick="changeHistoryPage(-1)">Previous</button>
+                                <button class="btn-page" id="nextPageBtn" onclick="changeHistoryPage(1)">Next</button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- 5 Metric Scorecards (Review Level) -->
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px;">
-                        <div class="metric-tile">
-                            <div class="metric-title">Total Analyzed</div>
-                            <div class="metric-value" id="batchTotalCount">0</div>
-                        </div>
-                        <div class="metric-tile">
-                            <div class="metric-title" style="color: var(--accent-pos);">Positive Reviews</div>
-                            <div class="metric-value" id="batchPosCount" style="color: var(--accent-pos);">0</div>
-                        </div>
-                        <div class="metric-tile">
-                            <div class="metric-title" style="color: var(--accent-neg);">Negative Reviews</div>
-                            <div class="metric-value" id="batchNegCount" style="color: var(--accent-neg);">0</div>
-                        </div>
-                        <div class="metric-tile">
-                            <div class="metric-title" style="color: var(--accent-neu);">Neutral Reviews</div>
-                            <div class="metric-value" id="batchNeuCount" style="color: var(--accent-neu);">0</div>
-                        </div>
-                        <div class="metric-tile">
-                            <div class="metric-title" style="color: #64748b;">Failed / Skipped</div>
-                            <div class="metric-value" id="batchFailedCount" style="color: #64748b;">0</div>
-                        </div>
-                    </div>
-
-                    <!-- Visual Charts Row: Doughnut + Bar Chart -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 20px;">
-                        <div>
-                            <div class="metric-title" style="margin-bottom: 8px; text-align:center;">📊 Sentiment Ratio (Doughnut)</div>
-                            <div style="height: 180px; position: relative;">
-                                <canvas id="batchPieChart"></canvas>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="metric-title" style="margin-bottom: 8px; text-align:center;">📈 Review Volume by Category (Bar Chart)</div>
-                            <div style="height: 180px; position: relative;">
-                                <canvas id="batchBarChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Aspect Breakdown -->
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:20px;">
-                        <div class="metric-title" style="margin-bottom: 6px;">🏷️ Extracted Aspect Category Distribution:</div>
-                        <div class="bubble-cloud" id="batchAspectTags" style="gap: 8px;"></div>
-                    </div>
-
-                    <!-- Filter & Export Action Toolbar -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
-                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <input type="text" id="batchSearchInput" placeholder="🔍 Search reviews..." oninput="filterBatchTable()" style="width:220px; margin-bottom:0; padding:6px 12px; font-size:12.5px; background:#fff;">
-                            <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Filter:</span>
-                            <button class="filter-btn active" id="filterAll" onclick="setSentimentFilter('All')">All</button>
-                            <button class="filter-btn" id="filterPos" onclick="setSentimentFilter('Positive')">Positive</button>
-                            <button class="filter-btn" id="filterNeg" onclick="setSentimentFilter('Negative')">Negative</button>
-                            <button class="filter-btn" id="filterNeu" onclick="setSentimentFilter('Neutral')">Neutral</button>
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn-link" onclick="downloadBatchCSV()" title="Download Results CSV">
-                                📥 Download CSV
-                            </button>
-                            <button class="btn-link" onclick="downloadBatchPDF()" title="Download PDF Report">
-                                📄 Export PDF Report
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Batch Results Table -->
-                    <div style="overflow-x: auto; background:#fff; border:1px solid var(--card-border); border-radius:10px;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width:60px;"># / ID</th>
-                                    <th>Review Text Snippet</th>
-                                    <th style="width:90px;">Sentiment</th>
-                                    <th style="width:105px;">ML Conf (LR)</th>
-                                    <th style="width:100px;">VADER Compound</th>
-                                    <th style="width:80px;">TextBlob</th>
-                                    <th style="width:90px;">ML (LR)</th>
-                                    <th style="width:110px;">Aspects</th>
-                                    <th style="width:80px;">Priority</th>
-                                    <th style="width:60px;">Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="batchTableBody"></tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- 6-Stage NLP Pipeline Architecture Diagram -->
-        <div class="card">
-            <h2>🧪 System Architecture: The 6-Stage NLP & ML Pipeline</h2>
-            <div class="pipeline-container">
-                <div class="pipeline-step">
-                    <h4>1. Input Ingestion</h4>
-                    <p>Single text, .DOCX, .PDF, .CSV, .XLSX</p>
-                </div>
-                <div class="pipeline-arrow">➔</div>
-                <div class="pipeline-step">
-                    <h4>2. Clean & Tokenize</h4>
-                    <p>Lowercasing, Negation-preserving regex</p>
-                </div>
-                <div class="pipeline-arrow">➔</div>
-                <div class="pipeline-step">
-                    <h4>3. Morphological Lemmas</h4>
-                    <p>WordNet grammatical root resolution</p>
-                </div>
-                <div class="pipeline-arrow">➔</div>
-                <div class="pipeline-step">
-                    <h4>4. Lexicon Polarity</h4>
-                    <p>NLTK VADER valence scoring</p>
-                </div>
-                <div class="pipeline-arrow">➔</div>
-                <div class="pipeline-step">
-                    <h4>5. TF-IDF & ML Inference</h4>
-                    <p>Logistic Regression & Naive Bayes</p>
-                </div>
-                <div class="pipeline-arrow">➔</div>
-                <div class="pipeline-step">
-                    <h4>6. Consensus & Action</h4>
-                    <p>Resolved Sentiment, ABSA & Exports</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- History Trends -->
-        <div class="card" id="historicalTrendsCard">
-            <h2>
-                <span>📈 Historical Sentiment Trends (Recent Analyses)</span>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <button class="btn-secondary" id="exportHistoryBtn" onclick="exportHistoryCsv()" style="display:inline-flex; align-items:center; gap:4px; font-size:13px; padding:7px 12px;">
-                        📥 Export CSV
-                    </button>
-                    <button class="btn-secondary" id="refreshHistoryBtn" onclick="loadHistory(true)" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:7px 12px;">
-                        <span id="refreshHistorySpinner" class="spinner" style="display:none; width:13px; height:13px;"></span>
-                        <span id="refreshHistoryText">🔄 Refresh History</span>
-                    </button>
-                </div>
-            </h2>
-
-            <!-- Sentiment summary counts pills -->
-            <div id="historySummaryPills" style="display:none; gap:10px; margin-bottom:16px; flex-wrap:wrap; font-size:13px;">
-                <span class="info-badge" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0;">
-                    🟢 Positive: <strong id="histPosCount" style="margin-left:4px;">0</strong>
-                </span>
-                <span class="info-badge" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">
-                    🔴 Negative: <strong id="histNegCount" style="margin-left:4px;">0</strong>
-                </span>
-                <span class="info-badge" style="background:#f8fafc; color:#64748b; border:1px solid #e2e8f0;">
-                    ⚪ Neutral: <strong id="histNeuCount" style="margin-left:4px;">0</strong>
-                </span>
-                <span class="info-badge" style="background:#eef2ff; color:#4f46e5; border:1px solid #c7d2fe;">
-                    📊 Total Stored: <strong id="histTotalCount" style="margin-left:4px;">0</strong>
-                </span>
-            </div>
-
-            <!-- Empty State when 0 history records exist -->
-            <div id="historyChartEmptyState" style="display:none; text-align:center; padding:36px 20px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; margin-bottom:20px;">
-                <div style="font-size:26px; margin-bottom:6px;">📈</div>
-                <div style="font-weight:600; color:var(--text-main); font-size:14px;">No Historical Records Found</div>
-                <div style="color:var(--text-muted); font-size:12.5px; margin-top:4px;">
-                    Submit a review in Single Review Analysis or upload a batch document above to track sentiment trends over time.
-                </div>
-            </div>
-
-            <!-- Chart Container -->
-            <div id="historyChartWrapper" style="height: 190px; width: 100%; margin-bottom: 20px;">
-                <canvas id="trendLineChart"></canvas>
-            </div>
-
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:70px;">ID</th>
-                            <th>Review Snippet</th>
-                            <th style="width:105px;">Sentiment</th>
-                            <th style="width:110px;">Confidence</th>
-                            <th style="width:100px;">Compound</th>
-                            <th style="width:90px;">Priority</th>
-                            <th style="width:145px;">Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTableBody">
-                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding:16px;">Loading database records...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Review Details Modal -->
-        <div id="reviewModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(15,23,42,0.6); backdrop-filter:blur(3px); justify-content:center; align-items:center;">
-            <div style="background:var(--card-bg); border-radius:12px; width:90%; max-width:560px; padding:22px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15); border:1px solid var(--card-border);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--card-border); padding-bottom:10px;">
-                    <h3 id="modalTitle" style="margin:0; font-size:15px; color:var(--primary); font-weight:700;">Review Details</h3>
-                    <button onclick="closeReviewModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); line-height:1;">&times;</button>
-                </div>
-                <div id="modalBody" style="font-size:13.5px; line-height:1.6; max-height:360px; overflow-y:auto; word-break:break-word; margin-bottom:16px;"></div>
-                <div style="text-align:right;">
-                    <button class="btn-primary" onclick="closeReviewModal()" style="padding:6px 16px; font-size:13px;">Close</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Confusion Matrix & Benchmark -->
-        <div class="card">
-            <h2>🎓 Scikit-Learn TF-IDF Benchmark & Confusion Matrix</h2>
-            <p style="color:var(--text-muted); font-size:13.5px; margin-bottom:14px;">
-                Trained on balanced n-gram TF-IDF vectors with negation preserving tokenization.
-            </p>
-            <div style="overflow-x: auto; margin-bottom: 20px;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Model / Classifier</th>
-                            <th>Accuracy</th>
-                            <th>Macro Precision</th>
-                            <th>Macro Recall</th>
-                            <th>Macro F1-Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="metricsTableBody">
-                        <tr><td colspan="5" style="text-align:center;">Loading model metrics...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <h3 style="font-size:14px; color:#1e293b; margin-top:16px;">🧮 3x3 Multi-Class Confusion Matrix (Logistic Regression on Test Split):</h3>
-            <div style="display:flex; justify-content:center; margin-top:10px;">
-                <table class="cm-table" id="confusionMatrixTable">
-                    <thead>
-                        <tr>
-                            <th>Actual \\ Predicted</th>
-                            <th>Pred: Positive</th>
-                            <th>Pred: Negative</th>
-                            <th>Pred: Neutral</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cmBody"></tbody>
-                </table>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Review Detail Modal -->
-    <div class="modal-overlay" id="reviewDetailModal">
-        <div class="modal-box">
+    <!-- ========================================== -->
+    <!-- REVIEW DETAILS MODAL                      -->
+    <!-- ========================================== -->
+    <div id="reviewModal" class="modal-overlay" onclick="handleModalBackdrop(event)">
+        <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modalReviewTitle">Review Details</h3>
-                <button class="close-modal-btn" onclick="closeReviewModal()">✕</button>
-            </div>
-            <div id="modalReviewBody" style="font-size:13.5px; line-height:1.7; color:#334155;"></div>
-        </div>
-    </div>
-
-    <!-- Technical Reference Modal -->
-    <div class="modal-overlay" id="docModal">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>📖 System Technical Reference</h3>
-                <button class="close-modal-btn" onclick="closeDocModal()">✕</button>
-            </div>
-            <div style="font-size:14px; line-height:1.7; color:#334155;">
-                <h4 style="color:#4f46e5; margin-bottom:4px;">1. Multi-Engine Sentiment Consensus</h4>
-                <p>The system resolves primary sentiment using a consensus engine combining VADER lexicon scores, TextBlob subjectivity/polarity, and supervised TF-IDF machine learning models. High-confidence indicators take precedence over neutral defaults.</p>
-                <br>
-                <h4 style="color:#4f46e5; margin-bottom:4px;">2. Multi-Format Document Ingestion</h4>
-                <p>Supports DOCX, DOC, PDF, CSV, XLSX, XLS, and TXT. Multi-page PDFs, Word document tables, and Excel sheets are parsed systematically in natural reading order without truncating documents.</p>
-                <br>
-                <h4 style="color:#4f46e5; margin-bottom:4px;">3. VADER Compound Score Computation</h4>
-                <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:10px 14px; margin:8px 0; font-family:'Courier New', monospace; font-size:13px; font-weight:600;">
-                    Compound Score (c) = x / √(x² + α)
+                <div>
+                    <h3 id="modalReviewTitle" style="font-size:16px; font-weight:700; color:var(--primary);">Review Details</h3>
+                    <span id="modalReviewDate" style="font-size:12px; color:var(--text-muted);">--</span>
                 </div>
-                <p style="font-size:12.5px; color:#64748b;">Where x = sum of valence scores of lexicon tokens, and α = normalization parameter (default ≈ 15).</p>
+                <button class="modal-close-btn" onclick="closeReviewModal()">✕</button>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Full Customer Review</h4>
+                <div id="modalReviewText" style="padding:14px; background:#F8FAFC; border:1px solid var(--card-border); border-radius:var(--radius-sm); font-size:13.5px; line-height:1.6;"></div>
+            </div>
+
+            <div class="metrics-five-grid" style="margin-bottom:18px;">
+                <div class="metric-mini-tile"><div class="tile-lbl">Sentiment</div><div class="tile-val" id="modalSentiment">--</div></div>
+                <div class="metric-mini-tile"><div class="tile-lbl">Compound</div><div class="tile-val" id="modalCompound">--</div></div>
+                <div class="metric-mini-tile"><div class="tile-lbl">Confidence</div><div class="tile-val" id="modalConfidence">--</div></div>
+                <div class="metric-mini-tile"><div class="tile-lbl">Subjectivity</div><div class="tile-val" id="modalSubjectivity">--</div></div>
+                <div class="metric-mini-tile"><div class="tile-lbl">Priority</div><div class="tile-val" id="modalPriority">--</div></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Aspects & Category</h4>
+                <div id="modalAspects" class="aspects-row"></div>
+            </div>
+
+            <div style="text-align:right;">
+                <button class="btn-secondary" onclick="closeReviewModal()">Close</button>
             </div>
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- TECHNICAL REFERENCE MODAL                 -->
+    <!-- ========================================== -->
+    <div id="docModal" class="modal-overlay" onclick="handleDocModalBackdrop(event)">
+        <div class="modal-card" style="max-width:760px;">
+            <div class="modal-header">
+                <h3 style="font-size:16px; font-weight:700; color:var(--primary);">Sentiq Technical Reference</h3>
+                <button class="modal-close-btn" onclick="closeDocModal()">✕</button>
+            </div>
+            <div style="font-size:13px; line-height:1.7; color:var(--text-body);">
+                <p><strong>Architecture Overview:</strong> Sentiq integrates lexicon-based rule valuation (NLTK VADER) and probabilistic classification (TextBlob PatternAnalyzer) with supervised ML models (TF-IDF + Logistic Regression & Multinomial Naive Bayes).</p>
+                <br/>
+                <p><strong>Multi-Format Parsing:</strong> Robust document extraction engine supporting .DOCX, .DOC, .PDF (PyMuPDF / pdfplumber fallback), .CSV, .XLSX, .XLS, and .TXT.</p>
+                <br/>
+                <p><strong>Sentence-Level Analysis:</strong> Sentences are segmented with abbreviation and decimal-number preservation. Compound scores are calculated for each sentence and aggregated into mean valence.</p>
+            </div>
+            <div style="text-align:right; margin-top:20px;">
+                <button class="btn-primary-purple" onclick="closeDocModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT APPLICATION LOGIC              -->
+    <!-- ========================================== -->
     <script>
-        // ==========================================
-        // SENTIQ STARTUP ANIMATION CONTROLLER
-        // ==========================================
+        // Sentiq Startup Controller
         (function initSentiqStartupIntro() {
             document.body.classList.add('sentiq-intro-active');
             const overlay = document.getElementById('sentiqIntroOverlay');
@@ -2361,23 +2773,11 @@ def get_interactive_dashboard():
                 }, 300);
             }
 
-            // Normal completion at 2400ms (Stage 4 end)
             setTimeout(dismissIntro, 2400);
-
-            // Clicking overlay dismisses early without delay
             overlay.addEventListener('click', dismissIntro);
         })();
 
-        let pieChartInstance = null;
-        let trendChartInstance = null;
-        let batchPieChartInstance = null;
-        let batchBarChartInstance = null;
-        let speechRecognition = null;
-        let isListening = false;
-        let currentTokens = [];
-        let currentBatchData = null;
-        let activeSentimentFilter = 'All';
-
+        // Global State
         const PRESETS = {
             "samsung_a55": "The Samsung Galaxy A55 has a beautiful display and the camera takes excellent photos. The battery lasts all day during normal usage. However, the phone heats up during gaming and the charging speed is disappointing. The design is premium and the phone feels comfortable to hold. The device comes with a 6.5-inch display and 128 GB of storage.",
             "tech_pos": "The battery life is phenomenal and the screen resolution is gorgeous! Best gadget I bought this entire year.",
@@ -2391,12 +2791,55 @@ def get_interactive_dashboard():
         };
 
         let currentSingleSentences = [];
+        let currentSingleData = null;
         let activeSingleSentenceFilter = 'All';
+        let currentBatchData = null;
+        let currentHistoryData = [];
+        let trendChartInstance = null;
+        let dashboardDoughnutInstance = null;
+        let batchPieInstance = null;
+        let batchBarInstance = null;
+        let isListening = false;
+        let recognition = null;
+        let historyPage = 1;
+        const historyPageSize = 10;
+        let activeMyReviewsFilter = 'All';
 
-        function handleSampleSelect(val) {
-            if (val && PRESETS[val]) {
-                document.getElementById('reviewInput').value = PRESETS[val];
+        // Navigation Controller
+        const PAGE_TITLES = {
+            'new-review': { title: 'New Review', subtitle: 'Enter customer feedback to understand its sentiment.' },
+            'my-reviews': { title: 'My Reviews', subtitle: 'Your complete history of analyzed customer feedback.' },
+            'dashboard': { title: 'Sentiment Dashboard', subtitle: 'Understand your customer feedback at a glance.' },
+            'reviews': { title: 'All Reviews', subtitle: 'Search, filter, and inspect all customer feedback.' }
+        };
+
+        function navigateTo(viewId) {
+            document.querySelectorAll('.sidebar-nav-item').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+
+            const navBtn = document.getElementById('nav-' + viewId);
+            if (navBtn) navBtn.classList.add('active');
+
+            const view = document.getElementById('view-' + viewId);
+            if (view) view.classList.add('active');
+
+            if (PAGE_TITLES[viewId]) {
+                document.getElementById('pageMainHeading').innerText = PAGE_TITLES[viewId].title;
+                document.getElementById('pageMainSubtitle').innerText = PAGE_TITLES[viewId].subtitle;
             }
+
+            // Close mobile sidebar if open
+            const sidebar = document.getElementById('appSidebar');
+            if (sidebar) sidebar.classList.remove('open');
+
+            if (viewId === 'my-reviews' || viewId === 'dashboard' || viewId === 'reviews') {
+                loadHistory();
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            if (sidebar) sidebar.classList.toggle('open');
         }
 
         function switchTab(mode) {
@@ -2418,176 +2861,140 @@ def get_interactive_dashboard():
             }
         }
 
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Single Review Form Handlers
+        function updateCharCount() {
+            const val = document.getElementById('reviewInput').value;
+            document.getElementById('charCount').innerText = `${val.length} character${val.length === 1 ? '' : 's'}`;
+        }
+
+        function clearReviewInput() {
+            document.getElementById('reviewInput').value = '';
+            document.getElementById('sampleDropdown').value = '';
+            updateCharCount();
+        }
+
+        function handleSampleSelect(val) {
+            if (val && PRESETS[val]) {
+                document.getElementById('reviewInput').value = PRESETS[val];
+                updateCharCount();
+            }
+        }
+
         function updateThreshold(val) {
-            document.getElementById('thresholdDisplay').innerText = (val >= 0 ? '+' : '') + parseFloat(val).toFixed(2);
+            document.getElementById('thresholdVal').innerText = `±${parseFloat(val).toFixed(2)}`;
         }
 
         function toggleStopwordsDisplay(checked) {
-            renderWordHighlights(checked);
+            // Visual toggle
         }
 
-        function openDocModal() {
-            document.getElementById('docModal').style.display = 'flex';
-        }
-
-        function closeDocModal() {
-            document.getElementById('docModal').style.display = 'none';
-        }
-
-        function closeReviewModal() {
-            document.getElementById('reviewDetailModal').style.display = 'none';
-        }
-
-        function openReviewModal(idx) {
-            if (!currentBatchData || !currentBatchData.detailed_results || !currentBatchData.detailed_results[idx]) return;
-            const r = currentBatchData.detailed_results[idx];
-            document.getElementById('modalReviewTitle').innerText = `Review Details (${r.source_id || '#' + (idx + 1)})`;
-            
-            const sentColor = r.sentiment === 'Positive' ? '#15803d' : (r.sentiment === 'Negative' ? '#b91c1c' : '#b45309');
-            
-            let sentencesHtml = '';
-            if (r.sentence_analysis && r.sentence_analysis.sentences && r.sentence_analysis.sentences.length > 0) {
-                const sents = r.sentence_analysis.sentences;
-                sentencesHtml = `
-                    <div style="margin-top:14px;">
-                        <strong style="color:#1e293b;">Sentence-by-Sentence Sentiment (${sents.length} sentences):</strong>
-                        <div style="max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; margin-top:6px;">
-                            <table style="margin:0; font-size:12px;">
-                                <thead>
-                                    <tr>
-                                        <th style="width:30px;">#</th>
-                                        <th>Sentence Text</th>
-                                        <th style="width:75px;">Sentiment</th>
-                                        <th style="width:65px;">Compound</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${sents.map((s, si) => `
-                                        <tr class="${s.sentiment === 'Positive' ? 'sent-row-pos' : (s.sentiment === 'Negative' ? 'sent-row-neg' : 'sent-row-neu')}">
-                                            <td>${si + 1}</td>
-                                            <td>${s.text}</td>
-                                            <td><span class="badge ${s.sentiment === 'Positive' ? 'badge-pos' : (s.sentiment === 'Negative' ? 'badge-neg' : 'badge-neu')}" style="font-size:10px; padding:2px 8px;">${s.sentiment}</span></td>
-                                            <td style="font-family:monospace;">${s.vader_compound !== undefined ? (s.vader_compound >= 0 ? '+' : '') + s.vader_compound.toFixed(4) : '0.0000'}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
-
-            const confDisplay = (r.confidence_percentage !== null && r.confidence_percentage !== undefined)
-                ? `${r.confidence_percentage}%`
-                : 'N/A';
-            const vaderCompVal = (r.overall_compound_score !== undefined)
-                ? `${r.overall_compound_score >= 0 ? '+' : ''}${Number(r.overall_compound_score).toFixed(4)}`
-                : ((r.vader_scores && r.vader_scores.compound_score !== undefined)
-                    ? `${r.vader_scores.compound_score >= 0 ? '+' : ''}${Number(r.vader_scores.compound_score).toFixed(4)}`
-                    : 'N/A');
-
-            document.getElementById('modalReviewBody').innerHTML = `
-                <div style="margin-bottom:12px;">
-                    <strong>Full Review Text:</strong>
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-top:6px; font-size:13.5px;">
-                        ${r.original_review}
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
-                    <div><strong>Resolved Sentiment:</strong> <span style="color:${sentColor}; font-weight:700;">${r.sentiment}</span></div>
-                    <div><strong>ML Model Confidence (LR):</strong> <strong style="color:#4f46e5;">${confDisplay}</strong></div>
-                    <div><strong>Urgency Priority:</strong> <span style="font-weight:700; color:${r.priority === 'High' ? '#dc2626' : (r.priority === 'Medium' ? '#d97706' : '#059669')}">${r.priority}</span></div>
-                    <div><strong>VADER Compound:</strong> <span style="font-family:monospace; font-weight:700;">${vaderCompVal}</span></div>
-                    <div><strong>TextBlob Polarity:</strong> ${r.textblob_metrics ? r.textblob_metrics.polarity : 'N/A'}</div>
-                    <div><strong>ML (Logistic Regression):</strong> ${r.ml_model_predictions ? r.ml_model_predictions.logistic_regression : 'N/A'}</div>
-                    <div><strong>ML (Naive Bayes):</strong> ${r.ml_model_predictions ? r.ml_model_predictions.naive_bayes : 'N/A'}</div>
-                </div>
-                <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12.5px; color:#1e40af;">
-                    <strong>Explanation:</strong> ${r.explanation || 'N/A'}
-                </div>
-                <div><strong>Aspects:</strong> ${(r.categories && r.categories.length) ? r.categories.join(', ') : 'General'}</div>
-                ${sentencesHtml}
-            `;
-            document.getElementById('reviewDetailModal').style.display = 'flex';
-        }
-
+        // Voice Input (Web Speech API)
         function toggleSpeechRecognition() {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRec) {
-                alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
-                return;
-            }
-
             const micBtn = document.getElementById('micBtn');
             const micText = document.getElementById('micText');
 
-            if (!speechRecognition) {
-                speechRecognition = new SpeechRec();
-                speechRecognition.continuous = false;
-                speechRecognition.interimResults = false;
-                speechRecognition.lang = 'en-US';
-
-                speechRecognition.onstart = () => {
-                    isListening = true;
-                    micBtn.classList.add('listening');
-                    micText.innerText = 'Listening...';
-                };
-
-                speechRecognition.onresult = (e) => {
-                    const transcript = e.results[0][0].transcript;
-                    document.getElementById('reviewInput').value = transcript;
-                };
-
-                speechRecognition.onerror = (e) => {
-                    console.error('Speech error:', e);
-                    stopListening();
-                };
-
-                speechRecognition.onend = () => {
-                    stopListening();
-                };
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+                return;
             }
 
-            if (!isListening) {
-                speechRecognition.start();
-            } else {
-                speechRecognition.stop();
+            if (isListening) {
+                stopListening();
+                return;
             }
+
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = function() {
+                isListening = true;
+                micBtn.classList.add('recording');
+                micText.innerText = 'Listening...';
+                showToast('Microphone listening. Speak your customer review.');
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    const txtArea = document.getElementById('reviewInput');
+                    txtArea.value = (txtArea.value ? txtArea.value.trim() + ' ' : '') + finalTranscript.trim();
+                    updateCharCount();
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+            };
+
+            recognition.onend = function() {
+                stopListening();
+            };
+
+            recognition.start();
         }
 
         function stopListening() {
             isListening = false;
             const micBtn = document.getElementById('micBtn');
             const micText = document.getElementById('micText');
-            micBtn.classList.remove('listening');
-            micText.innerText = 'Speak Review';
+            if (micBtn) micBtn.classList.remove('recording');
+            if (micText) micText.innerText = 'Speak Review';
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
         }
 
-        // ==========================================
-        // SINGLE REVIEW HANDLER & SENTENCE ANALYTICS
-        // ==========================================
+        // Single Review Analysis
         async function triggerAnalyze() {
             const text = document.getElementById('reviewInput').value.trim();
+            const threshold = parseFloat(document.getElementById('thresholdSlider').value);
             const errAlert = document.getElementById('singleErrorAlert');
+            const spinner = document.getElementById('analyzeSpinner');
+            const btnText = document.getElementById('analyzeBtnText');
+            const btn = document.getElementById('analyzeBtn');
+
             if (errAlert) errAlert.style.display = 'none';
 
             if (!text) {
                 if (errAlert) {
                     errAlert.style.display = 'block';
-                    errAlert.innerText = 'Please enter or paste a review before analyzing.';
+                    errAlert.innerText = 'Please write, paste or dictate a review text before analyzing.';
                 } else {
-                    alert('Please enter or paste a review before analyzing.');
+                    alert('Please enter a review to analyze.');
                 }
                 return;
             }
 
-            const threshold = parseFloat(document.getElementById('thresholdSlider').value);
-            const spinner = document.getElementById('analyzeSpinner');
-            const btnText = document.getElementById('analyzeBtnText');
-            const btn = document.getElementById('analyzeBtn');
-
             spinner.style.display = 'inline-block';
-            btnText.innerText = 'Analyzing Sentences...';
+            btnText.innerText = 'Analyzing Sentiment...';
             btn.disabled = true;
 
             try {
@@ -2601,9 +3008,7 @@ def get_interactive_dashboard():
                 let data = null;
                 try {
                     data = JSON.parse(rawText);
-                } catch (parseErr) {
-                    // Non-JSON response (e.g. plain text 500 error from proxy/serverless)
-                }
+                } catch (parseErr) {}
 
                 if (!res.ok) {
                     const errMsg = (data && data.detail) ? data.detail : (rawText.trim() || `Analysis failed (${res.status})`);
@@ -2614,8 +3019,10 @@ def get_interactive_dashboard():
                     throw new Error('Analysis returned an empty or invalid response.');
                 }
 
+                currentSingleData = data;
                 renderSingleResults(data);
                 loadHistory();
+                showToast('Review analyzed successfully!');
             } catch (err) {
                 if (errAlert) {
                     errAlert.style.display = 'block';
@@ -2632,546 +3039,301 @@ def get_interactive_dashboard():
 
         function renderSingleResults(data) {
             document.getElementById('emptyPlaceholder').style.display = 'none';
-            document.getElementById('resultContent').style.display = 'block';
-            document.getElementById('statusIndicator').innerText = 'Analysis Complete';
+            const resCard = document.getElementById('singleResultsCard');
+            resCard.style.display = 'flex';
 
-            const sa = data.sentence_analysis || {};
-            const dist = sa.sentiment_distribution || {};
-            const overallSent = data.sentiment || sa.overall_sentiment || 'Neutral';
-            const meanComp = sa.overall_compound_score !== undefined ? sa.overall_compound_score : (data.vader_scores ? data.vader_scores.compound_score : 0.0);
-            const thresh = sa.threshold !== undefined ? sa.threshold : (data.vader_scores && data.vader_scores.threshold !== undefined ? data.vader_scores.threshold : 0.05);
+            // Sentiment badge
+            const badge = document.getElementById('singleSentimentBadge');
+            badge.innerText = data.sentiment;
+            badge.className = 'sentiment-badge-lg';
+            if (data.sentiment === 'Positive') badge.classList.add('badge-positive');
+            else if (data.sentiment === 'Negative') badge.classList.add('badge-negative');
+            else badge.classList.add('badge-neutral');
 
-            // 1. Overall Sentiment Card
-            const badgeContainer = document.getElementById('sentimentBadgeContainer');
-            let badgeClass = 'badge-neu';
-            if (overallSent === 'Positive') badgeClass = 'badge-pos';
-            if (overallSent === 'Negative') badgeClass = 'badge-neg';
-            badgeContainer.innerHTML = `<span class="badge ${badgeClass}">${overallSent}</span>`;
+            // Compound Score
+            const vComp = (data.overall_compound_score !== undefined) ? data.overall_compound_score : (data.vader_scores?.compound_score || 0.0);
+            const compEl = document.getElementById('singleCompoundScore');
+            compEl.innerText = (vComp >= 0 ? '+' : '') + vComp.toFixed(4);
 
-            document.getElementById('meanCompoundVal').innerText = (meanComp >= 0 ? '+' : '') + meanComp.toFixed(4);
-            document.getElementById('selectedThresholdVal').innerText = '±' + thresh.toFixed(2);
-            
-            const prio = document.getElementById('priorityVal');
-            prio.innerText = data.priority;
-            prio.style.color = data.priority === 'High' ? '#dc2626' : (data.priority === 'Medium' ? '#d97706' : '#059669');
+            // Metrics
+            const confEl = document.getElementById('singleConfidence');
+            confEl.innerText = (data.confidence_percentage !== null && data.confidence_percentage !== undefined) 
+                ? `${parseFloat(data.confidence_percentage).toFixed(1)}%` 
+                : 'N/A';
 
-            const confEl = document.getElementById('singleConfidenceVal');
-            if (confEl) {
-                confEl.innerText = (data.confidence_percentage !== null && data.confidence_percentage !== undefined)
-                    ? `${data.confidence_percentage}%`
-                    : 'N/A';
-            }
+            document.getElementById('singleVaderCompound').innerText = (vComp >= 0 ? '+' : '') + vComp.toFixed(2);
+            document.getElementById('singlePolarity').innerText = (data.textblob_metrics?.polarity || 0.0).toFixed(2);
+            document.getElementById('singleSubjectivity').innerText = (data.textblob_metrics?.subjectivity || 0.0).toFixed(2);
 
-            document.getElementById('overallCalcExplanation').innerHTML = `<strong>💡 Overall Sentiment Calculation:</strong> ${sa.explanation || data.explanation}`;
+            const prioBadge = document.getElementById('singlePriorityBadge');
+            prioBadge.innerText = data.priority || 'Low';
 
-            // 2. Sentence Summary Cards
-            const totalSents = sa.total_sentences || 1;
-            const posC = dist.Positive !== undefined ? dist.Positive : (overallSent === 'Positive' ? 1 : 0);
-            const negC = dist.Negative !== undefined ? dist.Negative : (overallSent === 'Negative' ? 1 : 0);
-            const neuC = dist.Neutral !== undefined ? dist.Neutral : (overallSent === 'Neutral' ? 1 : 0);
-            const posP = dist.Positive_Percentage !== undefined ? dist.Positive_Percentage : (overallSent === 'Positive' ? 100.0 : 0.0);
-            const negP = dist.Negative_Percentage !== undefined ? dist.Negative_Percentage : (overallSent === 'Negative' ? 100.0 : 0.0);
-            const neuP = dist.Neutral_Percentage !== undefined ? dist.Neutral_Percentage : (overallSent === 'Neutral' ? 100.0 : 0.0);
+            // Sentences
+            const sa = data.sentence_analysis;
+            currentSingleSentences = (sa && sa.sentences) ? sa.sentences : [];
+            document.getElementById('sentenceCountBadge').innerText = `${currentSingleSentences.length} sentence${currentSingleSentences.length === 1 ? '' : 's'}`;
+            renderSingleSentencesList(currentSingleSentences);
 
-            document.getElementById('totalSentencesVal').innerText = totalSents;
-            document.getElementById('posSentencesVal').innerText = `${posC} (${posP}%)`;
-            document.getElementById('negSentencesVal').innerText = `${negC} (${negP}%)`;
-            document.getElementById('neuSentencesVal').innerText = `${neuC} (${neuP}%)`;
+            // Model predictions
+            const ml = data.ml_model_predictions || {};
+            document.getElementById('modelPredVader').innerText = data.vader_scores?.sentiment || '--';
+            document.getElementById('modelPredTextBlob').innerText = data.textblob_metrics?.polarity > 0.05 ? 'Positive' : (data.textblob_metrics?.polarity < -0.05 ? 'Negative' : 'Neutral');
+            document.getElementById('modelPredLR').innerText = ml.logistic_regression?.prediction || 'N/A';
+            document.getElementById('modelPredNB').innerText = ml.naive_bayes?.prediction || 'N/A';
 
-            // 3. Sentence Distribution Doughnut Chart
-            renderSentimentDoughnut(posC, negC, neuC);
+            // Aspects
+            const cats = data.categories || [];
+            updateAspectBadge('aspectQuality', cats.some(c => c.toLowerCase().includes('quality')));
+            updateAspectBadge('aspectShipping', cats.some(c => c.toLowerCase().includes('delivery') || c.toLowerCase().includes('shipping')));
+            updateAspectBadge('aspectSupport', cats.some(c => c.toLowerCase().includes('support') || c.toLowerCase().includes('service')));
+            updateAspectBadge('aspectPricing', cats.some(c => c.toLowerCase().includes('price') || c.toLowerCase().includes('value')));
 
-            // 4. Model Comparison
-            const mc = data.model_comparison || {};
-            document.getElementById('cmpVader').innerText = mc.vader || 'N/A';
-            document.getElementById('cmpLR').innerText = mc.logistic_regression || 'N/A';
-            document.getElementById('cmpNB').innerText = (data.ml_model_predictions && data.ml_model_predictions.naive_bayes) ? data.ml_model_predictions.naive_bayes : 'N/A';
-            document.getElementById('cmpTB').innerText = mc.textblob || 'N/A';
-
-            const disAlert = document.getElementById('disagreementAlert');
-            if (mc.has_disagreement) {
-                disAlert.style.display = 'block';
-                disAlert.innerHTML = `⚠️ <strong>Model Disagreement:</strong> ${mc.disagreement_details ? mc.disagreement_details.join(' | ') : 'Minor variation between rule-based & ML.'}`;
-            } else {
-                disAlert.style.display = 'none';
-            }
-
-            const recAlert = document.getElementById('recommendationAlert');
-            recAlert.innerHTML = `<strong>Action Recommendation:</strong> ${data.recommendation}`;
-
-            // 5. Populate Sentence-Level Results Table
-            currentSingleSentences = sa.sentences || [];
-            if (!currentSingleSentences.length) {
-                currentSingleSentences = [{
-                    id: 1,
-                    sentence_id: 'S1',
-                    text: data.original_review,
-                    sentiment: overallSent,
-                    vader_compound: meanComp,
-                    textblob_polarity: data.textblob_metrics ? data.textblob_metrics.polarity : 0.0,
-                    ml_prediction: (data.ml_model_predictions && data.ml_model_predictions.logistic_regression) ? data.ml_model_predictions.logistic_regression : 'N/A'
-                }];
-            }
-            populateSingleSentenceTable(currentSingleSentences);
-
-            // 6. Word Polarity Highlighting & Aspect Cloud
-            currentTokens = data.word_tokens || [];
-            renderWordHighlights(document.getElementById('stopwordToggle').checked);
-
-            const cloudContainer = document.getElementById('bubbleCloudContainer');
-            if (data.aspect_keywords && data.aspect_keywords.length) {
-                cloudContainer.innerHTML = data.aspect_keywords.map(a => `
-                    <div class="bubble-tag" style="display:inline-flex; align-items:center; gap:6px;">
-                        <span>🏷️ ${a.keyword}</span>
-                        <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-weight:600;">[${a.aspect}]</span>
-                    </div>
-                `).join('');
-            } else {
-                cloudContainer.innerHTML = '<span style="font-size:13px; color:var(--text-muted);">No domain-specific aspect terms identified.</span>';
-            }
+            // Recommendation
+            document.getElementById('singleRecommendationText').innerText = data.recommendation || 'No specific action required.';
+            document.getElementById('singleExplanationText').innerText = data.explanation || '';
         }
 
-        function setSentenceTableFilter(filter) {
+        function updateAspectBadge(elementId, isActive) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (isActive) el.classList.add('active');
+            else el.classList.remove('active');
+        }
+
+        function setSentenceTableFilter(filter, btn) {
             activeSingleSentenceFilter = filter;
-            ['sentFilterAll', 'sentFilterPos', 'sentFilterNeg', 'sentFilterNeu'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.remove('active');
-            });
-            if (filter === 'All' && document.getElementById('sentFilterAll')) document.getElementById('sentFilterAll').classList.add('active');
-            if (filter === 'Positive' && document.getElementById('sentFilterPos')) document.getElementById('sentFilterPos').classList.add('active');
-            if (filter === 'Negative' && document.getElementById('sentFilterNeg')) document.getElementById('sentFilterNeg').classList.add('active');
-            if (filter === 'Neutral' && document.getElementById('sentFilterNeu')) document.getElementById('sentFilterNeu').classList.add('active');
-            filterSingleSentenceTable();
+            document.querySelectorAll('.sentence-filter-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            if (filter === 'All') {
+                renderSingleSentencesList(currentSingleSentences);
+            } else {
+                renderSingleSentencesList(currentSingleSentences.filter(s => s.sentiment === filter));
+            }
         }
 
-        function filterSingleSentenceTable() {
-            const rows = document.querySelectorAll('#sentenceTableBody tr');
-            rows.forEach(row => {
-                const s = row.getAttribute('data-sentiment');
-                row.style.display = (activeSingleSentenceFilter === 'All' || s === activeSingleSentenceFilter) ? '' : 'none';
-            });
-        }
-
-        function populateSingleSentenceTable(sentences) {
-            const tbody = document.getElementById('sentenceTableBody');
-            if (!sentences || !sentences.length) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No individual sentences to display.</td></tr>';
+        function renderSingleSentencesList(sentences) {
+            const list = document.getElementById('singleSentenceTableBody');
+            if (!sentences.length) {
+                list.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12.5px;">No sentences match this filter.</div>';
                 return;
             }
-            tbody.innerHTML = sentences.map((s, idx) => {
-                let rowClass = 'sent-row-neu';
-                let badgeClass = 'badge-neu';
-                if (s.sentiment === 'Positive') { rowClass = 'sent-row-pos'; badgeClass = 'badge-pos'; }
-                if (s.sentiment === 'Negative') { rowClass = 'sent-row-neg'; badgeClass = 'badge-neg'; }
 
-                const comp = s.vader_compound !== undefined ? (s.vader_compound >= 0 ? '+' : '') + s.vader_compound.toFixed(4) : (s.vader_scores && s.vader_scores.compound !== undefined ? s.vader_scores.compound : '0.0000');
-                const tbPol = s.textblob_polarity !== undefined ? (s.textblob_polarity >= 0 ? '+' : '') + s.textblob_polarity.toFixed(2) : '0.00';
-                const ml = s.ml_prediction || (s.ml_predictions && s.ml_predictions.logistic_regression) || 'N/A';
+            list.innerHTML = sentences.map(s => {
+                let borderClass = 'border-neu';
+                let badgeClass = 'badge-neutral';
+                if (s.sentiment === 'Positive') { borderClass = 'border-pos'; badgeClass = 'badge-positive'; }
+                else if (s.sentiment === 'Negative') { borderClass = 'border-neg'; badgeClass = 'badge-negative'; }
+
+                const score = s.vader_scores ? (s.vader_scores.compound >= 0 ? '+' : '') + s.vader_scores.compound.toFixed(2) : '';
 
                 return `
-                    <tr class="${rowClass}" data-sentiment="${s.sentiment}">
-                        <td style="font-weight:700; color:#4338ca;">${s.id || (idx + 1)}</td>
-                        <td style="font-size:13px; color:#1e293b; line-height:1.5;">${s.text}</td>
-                        <td><span class="badge ${badgeClass}">${s.sentiment}</span></td>
-                        <td style="font-family:monospace; font-weight:700;">${comp}</td>
-                        <td style="font-family:monospace;">${tbPol}</td>
-                        <td><span style="font-size:11.5px; font-weight:600;">${ml}</span></td>
-                    </tr>
+                    <div class="sentence-item ${borderClass}">
+                        <div style="flex:1;">
+                            <span style="font-size:11px; color:var(--text-muted); font-weight:600; margin-right:6px;">#${s.sentence_id}</span>
+                            <span>${escapeHtml(s.sentence_text)}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="sentence-badge-sm ${badgeClass}">${s.sentiment}</span>
+                            <span style="font-family:monospace; font-size:11px; color:var(--text-muted);">${score}</span>
+                        </div>
+                    </div>
                 `;
             }).join('');
-            filterSingleSentenceTable();
         }
 
-        function renderWordHighlights(dimStopwords) {
-            const highlightBox = document.getElementById('highlightedWordsBox');
-            if (!currentTokens.length) return;
-
-            let html = '';
-            currentTokens.forEach((item, idx) => {
-                let stopClass = (dimStopwords && item.is_stopword) ? 'word-stop' : '';
-                let isPunct = /^[.,!?;:]$/.test(item.word);
-                let space = (idx > 0 && !isPunct) ? ' ' : '';
-                if (item.sentiment === 'positive') {
-                    html += `${space}<span class="word-pos ${stopClass}" title="VADER: +${item.score}">${item.word}</span>`;
-                } else if (item.sentiment === 'negative') {
-                    html += `${space}<span class="word-neg ${stopClass}" title="VADER: ${item.score}">${item.word}</span>`;
-                } else {
-                    html += `${space}<span class="${stopClass}">${item.word}</span>`;
-                }
-            });
-            highlightBox.innerHTML = html;
+        // Batch Review Processing
+        function handleFileSelected(files) {
+            if (files && files.length > 0) {
+                document.getElementById('selectedFileName').innerText = files[0].name;
+            }
         }
 
-        function renderSentimentDoughnut(pos, neg, neu) {
-            const ctx = document.getElementById('sentimentPieChart').getContext('2d');
-            if (pieChartInstance) pieChartInstance.destroy();
-
-            pieChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Positive', 'Negative', 'Neutral'],
-                    datasets: [{
-                        data: [pos || 0.01, neg || 0.01, neu || 0.01],
-                        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    cutout: '65%'
-                }
-            });
-        }
-
-        // ==========================================
-        // BATCH & FILE UPLOAD HANDLERS
-        // ==========================================
         async function uploadMultiFormatFile() {
             const fileInput = document.getElementById('multiFileInput');
-            const errAlert = document.getElementById('batchErrorAlert');
-            if (errAlert) errAlert.style.display = 'none';
+            const mode = document.getElementById('docModeSelect').value;
+            const threshold = parseFloat(document.getElementById('thresholdSlider').value);
+            const spinner = document.getElementById('uploadFileSpinner');
+            const btnText = document.getElementById('uploadFileBtnText');
 
-            if (!fileInput.files.length) {
-                if (errAlert) {
-                    errAlert.style.display = 'block';
-                    errAlert.innerText = 'Please select a supported file (.docx, .doc, .pdf, .csv, .xlsx, .xls, .txt) to upload.';
-                } else {
-                    alert('Please select a file to upload.');
-                }
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select a file to upload (.docx, .doc, .pdf, .csv, .xlsx, .xls, .txt).');
                 return;
             }
 
-            const file = fileInput.files[0];
-            const mode = document.getElementById('docModeSelect').value || 'auto';
-            const colName = document.getElementById('csvColumnInput').value.trim();
-            const threshold = document.getElementById('thresholdSlider') ? parseFloat(document.getElementById('thresholdSlider').value) : 0.05;
-
             const formData = new FormData();
-            formData.append('file', file);
-
-            let url = `/api/upload-document?threshold=${threshold}&mode=${mode}`;
-            if (colName) url += `&column_name=${encodeURIComponent(colName)}`;
-
-            const spinner = document.getElementById('batchUploadSpinner');
-            const btnText = document.getElementById('uploadBtnText');
-            const btn = document.getElementById('uploadFileBtn');
+            formData.append('file', fileInput.files[0]);
+            const url = `/api/upload-document?threshold=${threshold}&mode=${mode}`;
 
             spinner.style.display = 'inline-block';
             btnText.innerText = 'Processing File...';
-            btn.disabled = true;
 
             try {
                 const res = await fetch(url, { method: 'POST', body: formData });
                 const rawText = await res.text();
                 let data = null;
-                try {
-                    data = JSON.parse(rawText);
-                } catch (parseErr) {}
+                try { data = JSON.parse(rawText); } catch(e) {}
 
                 if (!res.ok) {
-                    const errMsg = (data && data.detail) ? data.detail : (rawText.trim() || `File processing failed (${res.status})`);
-                    throw new Error(errMsg);
+                    throw new Error((data && data.detail) || rawText.trim() || `File processing failed (${res.status})`);
                 }
 
-                if (!data) {
-                    throw new Error('File processing returned an empty or invalid response.');
-                }
                 currentBatchData = data;
                 renderBatchDashboard(data);
                 loadHistory();
+                showToast(`Successfully analyzed ${data.total_processed} reviews from file.`);
             } catch (err) {
-                if (errAlert) {
-                    errAlert.style.display = 'block';
-                    errAlert.innerHTML = `<strong>Document Processing Error:</strong> ${err.message}`;
-                } else {
-                    alert('Error: ' + err.message);
-                }
+                alert('Document Processing Error: ' + err.message);
             } finally {
                 spinner.style.display = 'none';
-                btnText.innerText = '📁 Upload & Process File';
-                btn.disabled = false;
+                btnText.innerText = '⚡ Upload & Analyze Document';
             }
         }
 
         async function triggerPastedBatchAnalyze() {
-            const raw = document.getElementById('batchInput').value.trim();
-            const errAlert = document.getElementById('batchErrorAlert');
-            if (errAlert) errAlert.style.display = 'none';
+            const raw = document.getElementById('batchPasteInput').value.trim();
+            const threshold = parseFloat(document.getElementById('thresholdSlider').value);
+            const spinner = document.getElementById('batchPasteSpinner');
+            const btnText = document.getElementById('batchPasteBtnText');
 
             if (!raw) {
-                if (errAlert) {
-                    errAlert.style.display = 'block';
-                    errAlert.innerText = 'Please enter or paste at least one review in the text area.';
-                } else {
-                    alert('Please paste reviews to process.');
-                }
+                alert('Please paste reviews to process in bulk.');
                 return;
             }
 
-            const mode = document.getElementById('pastedModeSelect').value || 'auto';
-            const threshold = document.getElementById('thresholdSlider') ? parseFloat(document.getElementById('thresholdSlider').value) : 0.05;
-
-            const spinner = document.getElementById('batchPasteSpinner');
-            const btnText = document.getElementById('processPastedBtnText');
-            const btn = document.getElementById('processPastedBtn');
-
             spinner.style.display = 'inline-block';
             btnText.innerText = 'Processing Reviews...';
-            btn.disabled = true;
 
             try {
                 const res = await fetch('/api/analyze-batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: raw, threshold: threshold, mode: mode })
+                    body: JSON.stringify({ text: raw, threshold: threshold, mode: 'auto' })
                 });
 
                 const rawText = await res.text();
                 let data = null;
-                try {
-                    data = JSON.parse(rawText);
-                } catch (parseErr) {}
+                try { data = JSON.parse(rawText); } catch(e) {}
 
                 if (!res.ok) {
-                    const errMsg = (data && data.detail) ? data.detail : (rawText.trim() || `Batch analysis failed (${res.status})`);
-                    throw new Error(errMsg);
+                    throw new Error((data && data.detail) || rawText.trim() || `Batch analysis failed (${res.status})`);
                 }
 
-                if (!data) {
-                    throw new Error('Batch processing returned an empty or invalid response.');
-                }
                 currentBatchData = data;
                 renderBatchDashboard(data);
                 loadHistory();
+                showToast(`Successfully analyzed ${data.total_processed} bulk reviews.`);
             } catch (err) {
-                if (errAlert) {
-                    errAlert.style.display = 'block';
-                    errAlert.innerHTML = `<strong>Batch Processing Error:</strong> ${err.message}`;
-                } else {
-                    alert(err.message);
-                }
+                alert('Batch Processing Error: ' + err.message);
             } finally {
                 spinner.style.display = 'none';
                 btnText.innerText = '⚡ Process All Reviews in Bulk';
-                btn.disabled = false;
             }
         }
 
         function renderBatchDashboard(data) {
-            document.getElementById('batchResultsContainer').style.display = 'block';
+            document.getElementById('batchResultsDashboard').style.display = 'block';
+            document.getElementById('batchTotalCount').innerText = data.total_processed || 0;
 
-            // 1. Diagnostics card
-            const diagCard = document.getElementById('batchDiagnosticsCard');
-            if (data.diagnostics && diagCard) {
-                diagCard.style.display = 'block';
-                const d = data.diagnostics;
-                document.getElementById('diagFilename').innerText = d.filename || 'Pasted text';
-                const badge = document.getElementById('diagFormatBadge');
-                if (badge) badge.innerText = (d.file_extension || 'BATCH').replace('.', '').toUpperCase();
-                document.getElementById('diagSize').innerText = d.file_size_formatted || (d.file_size_bytes ? d.file_size_bytes + ' B' : 'N/A');
-                document.getElementById('diagChars').innerText = d.character_count || 'N/A';
-                document.getElementById('diagWords').innerText = d.word_count || 'N/A';
-                document.getElementById('diagIdentified').innerText = `${d.reviews_identified || data.total_reviews} reviews`;
-                document.getElementById('diagMode').innerText = d.processing_mode || 'auto';
-                const colEl = document.getElementById('diagColumn');
-                if (colEl) colEl.innerText = d.review_column_used || 'Auto';
-                document.getElementById('diagPreview').innerText = d.preview || 'Processed reviews successfully.';
+            const counts = data.sentiment_counts || {};
+            const pos = counts.Positive || 0;
+            const neg = counts.Negative || 0;
+            const neu = counts.Neutral || 0;
+            const total = data.total_processed || (pos + neg + neu) || 1;
 
-                const warnAlert = document.getElementById('diagWarningAlert');
-                let notices = [];
-                if (d.warnings && d.warnings.length) {
-                    notices.push(...d.warnings);
-                }
-                if (d.column_candidates && d.column_candidates.length > 1) {
-                    notices.push(`Plausible text columns found: [${d.column_candidates.join(', ')}]. Currently using: <strong>${d.review_column_used}</strong>. To analyze a different column, enter its name in the 'Review Column Name' input above.`);
-                }
-                if (notices.length) {
-                    warnAlert.style.display = 'block';
-                    warnAlert.innerHTML = `💡 <strong>Notice:</strong> ${notices.join(' | ')}`;
-                } else {
-                    warnAlert.style.display = 'none';
-                }
-            } else if (diagCard) {
-                diagCard.style.display = 'none';
-            }
+            document.getElementById('batchPosCount').innerText = pos;
+            document.getElementById('batchNegCount').innerText = neg;
+            document.getElementById('batchNeuCount').innerText = neu;
 
-            // 1b. Document-wide sentence distribution banner
-            const sentBanner = document.getElementById('batchSentenceSummaryBanner');
-            if (sentBanner && data.sentence_distribution && data.sentence_distribution.total_sentences > 0) {
-                const sd = data.sentence_distribution;
-                sentBanner.style.display = 'block';
-                document.getElementById('batchSentTotalCount').innerText = `${sd.total_sentences} sentences`;
-                document.getElementById('batchSentPosCount').innerText = `${sd.positive_sentences || 0} (${sd.positive_percentage || 0}%)`;
-                document.getElementById('batchSentNegCount').innerText = `${sd.negative_sentences || 0} (${sd.negative_percentage || 0}%)`;
-                document.getElementById('batchSentNeuCount').innerText = `${sd.neutral_sentences || 0} (${sd.neutral_percentage || 0}%)`;
-                const meanScore = Number(sd.mean_compound_score || 0);
-                document.getElementById('batchSentMeanScore').innerText = `${meanScore >= 0 ? '+' : ''}${meanScore.toFixed(4)}`;
-            } else if (sentBanner) {
-                sentBanner.style.display = 'none';
-            }
+            document.getElementById('batchPosPct').innerText = `${Math.round((pos / total) * 100)}%`;
+            document.getElementById('batchNegPct').innerText = `${Math.round((neg / total) * 100)}%`;
+            document.getElementById('batchNeuPct').innerText = `${Math.round((neu / total) * 100)}%`;
 
-            // 2. Scorecard tiles with percentages
-            const dist = data.sentiment_distribution || {};
-            const posPct = dist.Positive_Percentage !== undefined ? dist.Positive_Percentage : 0;
-            const negPct = dist.Negative_Percentage !== undefined ? dist.Negative_Percentage : 0;
-            const neuPct = dist.Neutral_Percentage !== undefined ? dist.Neutral_Percentage : 0;
-
-            document.getElementById('batchTotalCount').innerText = data.total_reviews || 0;
-            document.getElementById('batchPosCount').innerText = `${dist.Positive || 0} (${posPct}%)`;
-            document.getElementById('batchNegCount').innerText = `${dist.Negative || 0} (${negPct}%)`;
-            document.getElementById('batchNeuCount').innerText = `${dist.Neutral || 0} (${neuPct}%)`;
-            document.getElementById('batchFailedCount').innerText = (data.diagnostics && data.diagnostics.failed_records) ? data.diagnostics.failed_records : 0;
-
-            // 3. Render Batch Doughnut & Bar Charts
-            renderBatchCharts(dist.Positive || 0, dist.Negative || 0, dist.Neutral || 0);
-
-            // 4. Aspect Breakdown
-            const aspectContainer = document.getElementById('batchAspectTags');
-            if (aspectContainer && data.aspect_distribution) {
-                const aspectEntries = Object.entries(data.aspect_distribution);
-                if (aspectEntries.length) {
-                    aspectContainer.innerHTML = aspectEntries.map(([k, v]) => `
-                        <div class="bubble-tag">
-                            <strong>🏷️ ${k}:</strong> <span>${v} review${v > 1 ? 's' : ''}</span>
-                        </div>
-                    `).join('');
-                } else {
-                    aspectContainer.innerHTML = '<span style="font-size:12.5px; color:var(--text-muted);">No specific domain aspects identified.</span>';
-                }
-            }
-
-            // 5. Populate Results Table
+            renderBatchCharts(pos, neg, neu);
             populateBatchTable(data.detailed_results || []);
         }
 
         function renderBatchCharts(pos, neg, neu) {
-            // Doughnut Chart
-            const pieCtx = document.getElementById('batchPieChart').getContext('2d');
-            if (batchPieChartInstance) batchPieChartInstance.destroy();
-            batchPieChartInstance = new Chart(pieCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Positive', 'Negative', 'Neutral'],
-                    datasets: [{
-                        data: [pos || 0.001, neg || 0.001, neu || 0.001],
-                        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10.5 } } }
-                    },
-                    cutout: '60%'
-                }
-            });
+            if (typeof Chart === 'undefined') return;
 
-            // Bar Chart
-            const barCtx = document.getElementById('batchBarChart').getContext('2d');
-            if (batchBarChartInstance) batchBarChartInstance.destroy();
-            batchBarChartInstance = new Chart(barCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Positive', 'Negative', 'Neutral'],
-                    datasets: [{
-                        label: 'Review Count',
-                        data: [pos, neg, neu],
-                        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            });
+            // Batch Pie Chart
+            const pieCtx = document.getElementById('batchPieChart');
+            if (pieCtx) {
+                if (batchPieInstance) batchPieInstance.destroy();
+                batchPieInstance = new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Positive', 'Negative', 'Neutral'],
+                        datasets: [{
+                            data: [pos, neg, neu],
+                            backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+
+            // Batch Bar Chart
+            const barCtx = document.getElementById('batchBarChart');
+            if (barCtx) {
+                if (batchBarInstance) batchBarInstance.destroy();
+                batchBarInstance = new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Positive', 'Negative', 'Neutral'],
+                        datasets: [{
+                            label: 'Reviews',
+                            data: [pos, neg, neu],
+                            backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
         }
 
         function populateBatchTable(reviews) {
             const tbody = document.getElementById('batchTableBody');
-            tbody.innerHTML = reviews.map((r, i) => {
-                let badgeClass = 'badge-neu';
-                if (r.sentiment === 'Positive') badgeClass = 'badge-pos';
-                if (r.sentiment === 'Negative') badgeClass = 'badge-neg';
+            if (!tbody) return;
+            if (!reviews.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-muted);">No reviews to display.</td></tr>';
+                return;
+            }
 
-                const mlPred = (r.ml_model_predictions && r.ml_model_predictions.logistic_regression) ? r.ml_model_predictions.logistic_regression : 'N/A';
-                const tbPol = (r.textblob_metrics && r.textblob_metrics.polarity !== undefined) ? r.textblob_metrics.polarity : 'N/A';
-                const vaderComp = (r.overall_compound_score !== undefined && r.overall_compound_score !== null)
-                    ? (r.overall_compound_score >= 0 ? '+' : '') + Number(r.overall_compound_score).toFixed(4)
-                    : (r.vader_scores && r.vader_scores.compound_score !== undefined
-                        ? (r.vader_scores.compound_score >= 0 ? '+' : '') + Number(r.vader_scores.compound_score).toFixed(4)
-                        : 'N/A');
-                const confHtml = (r.confidence_percentage !== null && r.confidence_percentage !== undefined)
-                    ? `<strong>${r.confidence_percentage}%</strong>`
-                    : `<span style="color:var(--text-muted);">N/A</span>`;
-                const categories = (r.categories && r.categories.length) ? r.categories.join(', ') : 'General';
-                const safeText = (r.original_review || '').replace(/"/g, '&quot;');
-                const snippet = r.original_review.length > 75 ? (r.original_review.substring(0, 72) + '...') : r.original_review;
+            tbody.innerHTML = reviews.map((r, idx) => {
+                const s = r.sentiment || 'Neutral';
+                let bClass = 'badge-neutral';
+                if (s === 'Positive') bClass = 'badge-positive';
+                else if (s === 'Negative') bClass = 'badge-negative';
+
+                const cats = Array.isArray(r.categories) ? r.categories.join(', ') : (r.categories || 'General');
+                const comp = (r.overall_compound_score !== undefined) ? r.overall_compound_score : (r.vader_scores?.compound_score || 0.0);
 
                 return `
-                    <tr data-sentiment="${r.sentiment}" data-text="${safeText.toLowerCase()}">
-                        <td style="font-weight:700; color:#3730a3;">${r.source_id || (i + 1)}</td>
-                        <td title="Click to view details" onclick="openReviewModal(${i})" style="cursor:pointer;">
-                            <span style="color:#1e293b; text-decoration:underline dotted;">${snippet}</span>
-                        </td>
-                        <td><span class="badge ${badgeClass}">${r.sentiment}</span></td>
-                        <td>${confHtml}</td>
-                        <td>${vaderComp}</td>
-                        <td>${tbPol}</td>
-                        <td>${mlPred}</td>
-                        <td><span style="font-size:11.5px; color:var(--text-muted);">${categories}</span></td>
-                        <td><span style="font-weight:600; color:${r.priority === 'High' ? '#dc2626' : (r.priority === 'Medium' ? '#d97706' : '#059669')}">${r.priority}</span></td>
-                        <td>
-                            <button class="btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="openReviewModal(${i})">View</button>
-                        </td>
+                    <tr>
+                        <td style="font-family:monospace; font-weight:600;">#${r.review_id || (idx + 1)}</td>
+                        <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.original_review)}</td>
+                        <td><span class="sentence-badge-sm ${bClass}">${s}</span></td>
+                        <td style="font-family:monospace;">${(comp >= 0 ? '+' : '') + comp.toFixed(2)}</td>
+                        <td style="font-size:12px; color:var(--text-muted);">${escapeHtml(cats)}</td>
+                        <td><span style="font-size:11px; font-weight:600; padding:2px 6px; border-radius:4px; background:#F1F5F9;">${r.priority || 'Low'}</span></td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function setSentimentFilter(sentiment) {
-            activeSentimentFilter = sentiment;
-            ['filterAll', 'filterPos', 'filterNeg', 'filterNeu'].forEach(id => {
-                document.getElementById(id).classList.remove('active');
-            });
-            if (sentiment === 'All') document.getElementById('filterAll').classList.add('active');
-            if (sentiment === 'Positive') document.getElementById('filterPos').classList.add('active');
-            if (sentiment === 'Negative') document.getElementById('filterNeg').classList.add('active');
-            if (sentiment === 'Neutral') document.getElementById('filterNeu').classList.add('active');
-            filterBatchTable();
-        }
-
         function filterBatchTable() {
-            const query = (document.getElementById('batchSearchInput').value || '').toLowerCase().trim();
-            const rows = document.querySelectorAll('#batchTableBody tr');
-            rows.forEach(row => {
-                const s = row.getAttribute('data-sentiment');
-                const t = row.getAttribute('data-text');
-                const matchesSentiment = (activeSentimentFilter === 'All' || s === activeSentimentFilter);
-                const matchesQuery = (!query || t.includes(query));
-                row.style.display = (matchesSentiment && matchesQuery) ? '' : 'none';
-            });
+            if (!currentBatchData || !currentBatchData.detailed_results) return;
+            const q = document.getElementById('batchSearchInput').value.toLowerCase();
+            const filtered = currentBatchData.detailed_results.filter(r => (r.original_review || '').toLowerCase().includes(q));
+            populateBatchTable(filtered);
         }
 
-        // ==========================================
-        // EXPORT CSV & PDF
-        // ==========================================
+        // Export Handlers
         async function downloadBatchCSV() {
-            if (!currentBatchData || !currentBatchData.detailed_results) {
-                alert('No batch analysis data to export. Please process a document or reviews first.');
-                return;
-            }
-
+            if (!currentBatchData) { alert('No batch data to export.'); return; }
             try {
                 const res = await fetch('/api/export-batch-csv', {
                     method: 'POST',
@@ -3179,163 +3341,413 @@ def get_interactive_dashboard():
                     body: JSON.stringify(currentBatchData)
                 });
                 if (!res.ok) throw new Error('Failed to generate CSV export');
-
                 const blob = await res.blob();
-                const now = new Date();
-                const ts = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
-                const filename = `sentiment_results_${ts}.csv`;
-
-                const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
+                a.href = window.URL.createObjectURL(blob);
+                a.download = `sentiment_results_${new Date().toISOString().slice(0,10)}.csv`;
                 a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-            } catch (err) {
-                alert('Export Error: ' + err.message);
-            }
+                showToast('CSV export downloaded.');
+            } catch (e) { alert(e.message); }
         }
 
         async function downloadBatchPDF() {
-            if (!currentBatchData || !currentBatchData.detailed_results) {
-                alert('No batch analysis data to export. Please process a document or reviews first.');
-                return;
-            }
-
+            if (!currentBatchData) { alert('No batch data to export.'); return; }
             try {
                 const res = await fetch('/api/export-batch-pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(currentBatchData)
                 });
-                if (!res.ok) throw new Error('Failed to generate PDF report');
-
+                if (!res.ok) throw new Error('Failed to generate PDF export');
                 const blob = await res.blob();
-                const now = new Date();
-                const ts = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
-                const filename = `sentiment_results_${ts}.pdf`;
-
-                const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
+                a.href = window.URL.createObjectURL(blob);
+                a.download = `sentiment_results_${new Date().toISOString().slice(0,10)}.pdf`;
                 a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-            } catch (err) {
-                alert('PDF Export Error: ' + err.message);
-            }
+                showToast('PDF report downloaded.');
+            } catch (e) { alert(e.message); }
         }
 
-        // ==========================================
-        // METRICS & HISTORY
-        // ==========================================
-        async function loadMetrics() {
+        // History, Dashboard, & Reviews Management
+        async function loadHistory(isManualRefresh = false) {
             try {
-                const res = await fetch('/api/metrics');
+                const res = await fetch('/api/history?limit=100');
                 const rawText = await res.text();
                 let data = null;
-                try { data = JSON.parse(rawText); } catch (e) {}
-                if (!res.ok || !data) {
-                    console.warn('Metrics endpoint error:', rawText);
-                    return;
+                try { data = JSON.parse(rawText); } catch(e) {}
+
+                if (!res.ok) throw new Error((data && data.detail) || rawText.trim() || `Server error (${res.status})`);
+
+                const records = (data && data.history) || [];
+                currentHistoryData = records;
+
+                // Update Dashboard KPI cards
+                const total = data.total_count || records.length;
+                const pos = data.sentiment_summary?.Positive || 0;
+                const neg = data.sentiment_summary?.Negative || 0;
+                const neu = data.sentiment_summary?.Neutral || 0;
+
+                document.getElementById('kpiTotalReviews').innerText = total;
+                document.getElementById('kpiPositiveCount').innerText = pos;
+                document.getElementById('kpiNegativeCount').innerText = neg;
+                document.getElementById('kpiNeutralCount').innerText = neu;
+
+                const denom = total > 0 ? total : 1;
+                document.getElementById('kpiPosPct').innerText = `${Math.round((pos / denom) * 100)}%`;
+                document.getElementById('kpiNegPct').innerText = `${Math.round((neg / denom) * 100)}%`;
+                document.getElementById('kpiNeuPct').innerText = `${Math.round((neu / denom) * 100)}%`;
+
+                // Update Charts & Visuals
+                const chartWrapper = document.getElementById('historyChartWrapper');
+                const chartEmpty = document.getElementById('historyChartEmptyState');
+                const summaryPills = document.getElementById('historySummaryPills');
+
+                if (!records.length) {
+                    if (chartWrapper) chartWrapper.style.display = 'none';
+                    if (chartEmpty) chartEmpty.style.display = 'block';
+                    if (summaryPills) summaryPills.style.display = 'none';
+                } else {
+                    if (chartWrapper) chartWrapper.style.display = 'block';
+                    if (chartEmpty) chartEmpty.style.display = 'none';
+                    if (summaryPills) summaryPills.style.display = 'flex';
+                    renderTrendChart(records);
+                    renderDashboardDoughnut(pos, neg, neu);
+                    renderAspectAnalytics(records);
+                    renderPriorityAnalytics(records);
+                    renderDashboardRecentTable(records.slice(0, 5));
                 }
-                
-                const tbody = document.getElementById('metricsTableBody');
-                tbody.innerHTML = `
-                    <tr>
-                        <td><strong>${data.logistic_regression.model_name}</strong></td>
-                        <td>${(data.logistic_regression.accuracy * 100).toFixed(1)}%</td>
-                        <td>${(data.logistic_regression.precision_macro * 100).toFixed(1)}%</td>
-                        <td>${(data.logistic_regression.recall_macro * 100).toFixed(1)}%</td>
-                        <td>${(data.logistic_regression.f1_macro * 100).toFixed(1)}%</td>
-                    </tr>
-                    <tr>
-                        <td><strong>${data.naive_bayes.model_name}</strong></td>
-                        <td>${(data.naive_bayes.accuracy * 100).toFixed(1)}%</td>
-                        <td>${(data.naive_bayes.precision_macro * 100).toFixed(1)}%</td>
-                        <td>${(data.naive_bayes.recall_macro * 100).toFixed(1)}%</td>
-                        <td>${(data.naive_bayes.f1_macro * 100).toFixed(1)}%</td>
-                    </tr>
-                `;
 
-                const cm = data.logistic_regression.confusion_matrix;
-                const labels = data.labels;
-                const cmBody = document.getElementById('cmBody');
-                
-                cmBody.innerHTML = cm.map((row, rIdx) => `
-                    <tr>
-                        <th style="background:#f8fafc; font-weight:700;">Actual: ${labels[rIdx]}</th>
-                        ${row.map((val, cIdx) => `
-                            <td class="${rIdx === cIdx ? 'cm-diag' : (val > 0 ? 'cm-off' : '')}">
-                                ${val}
-                            </td>
-                        `).join('')}
-                    </tr>
-                `).join('');
+                // Populate My Reviews & All Reviews Tables
+                filterMyReviews();
+                filterAllReviewsTable();
+
+                if (isManualRefresh) showToast('Data refreshed successfully.');
             } catch (err) {
-                console.error(err);
+                console.error('loadHistory error:', err);
             }
         }
 
-        let currentHistoryData = [];
+        function renderTrendChart(history) {
+            if (typeof Chart === 'undefined') return;
+            const canvas = document.getElementById('trendLineChart');
+            if (!canvas) return;
 
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function exportHistoryCsv() {
-            if (!currentHistoryData || currentHistoryData.length === 0) {
-                alert("No historical records available to export. Please analyze at least one review first.");
-                return;
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
             }
-            window.location.href = "/api/export-history-csv";
+
+            const chron = [...history].reverse();
+            const labels = chron.map((r, i) => `#${r.id}`);
+            const dataPoints = chron.map(r => r.vader_compound);
+            const pointColors = chron.map(r => {
+                if (r.sentiment === 'Positive') return '#16a34a';
+                if (r.sentiment === 'Negative') return '#dc2626';
+                return '#d97706';
+            });
+
+            const ctx = canvas.getContext('2d');
+            trendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'VADER Compound',
+                        data: dataPoints,
+                        borderColor: '#6D28D9',
+                        backgroundColor: 'rgba(109, 40, 217, 0.05)',
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: '#FFFFFF',
+                        pointBorderWidth: 1.5,
+                        pointRadius: 4,
+                        borderWidth: 2,
+                        tension: 0.25,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: -1.0, max: 1.0, ticks: { stepSize: 0.5 } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
 
-        function openReviewModal(id) {
-            const item = currentHistoryData.find(r => r.id === id);
-            if (!item) return;
-            const modal = document.getElementById('reviewModal');
-            const title = document.getElementById('modalTitle');
-            const body = document.getElementById('modalBody');
+        function renderDashboardDoughnut(pos, neg, neu) {
+            if (typeof Chart === 'undefined') return;
+            const canvas = document.getElementById('dashboardDoughnutChart');
+            if (!canvas) return;
 
-            let badgeClass = 'badge-neu';
-            if (item.sentiment === 'Positive') badgeClass = 'badge-pos';
-            if (item.sentiment === 'Negative') badgeClass = 'badge-neg';
+            if (dashboardDoughnutInstance) dashboardDoughnutInstance.destroy();
 
-            title.innerHTML = `Review #${item.id} &nbsp;&bull;&nbsp; <span class="badge ${badgeClass}">${escapeHtml(item.sentiment)}</span>`;
-            
-            const confStr = item.confidence !== undefined && item.confidence !== null ? parseFloat(item.confidence).toFixed(1) + '%' : 'N/A';
-            const compStr = item.vader_compound !== undefined && item.vader_compound !== null ? parseFloat(item.vader_compound).toFixed(4) : '0.0000';
-            const posStr = item.vader_pos !== undefined ? parseFloat(item.vader_pos).toFixed(4) : '0.0000';
-            const negStr = item.vader_neg !== undefined ? parseFloat(item.vader_neg).toFixed(4) : '0.0000';
-            const neuStr = item.vader_neu !== undefined ? parseFloat(item.vader_neu).toFixed(4) : '0.0000';
-            const subjStr = item.subjectivity !== undefined ? parseFloat(item.subjectivity).toFixed(4) : '0.0000';
+            dashboardDoughnutInstance = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        data: [pos, neg, neu],
+                        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
 
-            body.innerHTML = `
-                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:14px; font-size:13.5px; white-space:pre-wrap; max-height:180px; overflow-y:auto;">${escapeHtml(item.review)}</div>
-                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; font-size:12.5px;">
-                    <div><strong>VADER Compound:</strong> <span style="font-family:monospace;">${compStr}</span></div>
-                    <div><strong>Model Confidence:</strong> ${confStr}</div>
-                    <div><strong>VADER Positive:</strong> <span style="font-family:monospace;">${posStr}</span></div>
-                    <div><strong>VADER Negative:</strong> <span style="font-family:monospace;">${negStr}</span></div>
-                    <div><strong>VADER Neutral:</strong> <span style="font-family:monospace;">${neuStr}</span></div>
-                    <div><strong>TextBlob Subjectivity:</strong> <span style="font-family:monospace;">${subjStr}</span></div>
-                    <div><strong>Priority Level:</strong> ${escapeHtml(item.priority || 'Low')}</div>
-                    <div><strong>Aspect Categories:</strong> ${escapeHtml(item.categories || 'General')}</div>
-                    <div><strong>Analysis Source:</strong> ${escapeHtml(item.source || 'single')}</div>
-                    <div><strong>Analyzed At:</strong> ${escapeHtml(item.created_at || 'Just now')}</div>
+        function renderAspectAnalytics(records) {
+            const container = document.getElementById('aspectAnalyticsBars');
+            if (!container) return;
+
+            let q = 0, s = 0, c = 0, p = 0;
+            records.forEach(r => {
+                const cats = (r.categories || '').toLowerCase();
+                if (cats.includes('quality') || cats.includes('product')) q++;
+                if (cats.includes('shipping') || cats.includes('delivery')) s++;
+                if (cats.includes('support') || cats.includes('service')) c++;
+                if (cats.includes('price') || cats.includes('pricing') || cats.includes('value')) p++;
+            });
+
+            const max = Math.max(q, s, c, p, 1);
+            container.innerHTML = `
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>📦 Product Quality</span><span>${q} mentions</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(q/max)*100}%; background-color:#6D28D9;"></div></div>
+                </div>
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>🚚 Delivery & Shipping</span><span>${s} mentions</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(s/max)*100}%; background-color:#3B82F6;"></div></div>
+                </div>
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>💬 Customer Support</span><span>${c} mentions</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(c/max)*100}%; background-color:#10B981;"></div></div>
+                </div>
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>💰 Pricing & Value</span><span>${p} mentions</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(p/max)*100}%; background-color:#F59E0B;"></div></div>
                 </div>
             `;
+        }
+
+        function renderPriorityAnalytics(records) {
+            const container = document.getElementById('priorityAnalyticsBars');
+            if (!container) return;
+
+            let urgent = 0, high = 0, med = 0, low = 0;
+            records.forEach(r => {
+                const p = (r.priority || 'Low').toLowerCase();
+                if (p.includes('urgent')) urgent++;
+                else if (p.includes('high')) high++;
+                else if (p.includes('medium')) med++;
+                else low++;
+            });
+
+            const total = records.length || 1;
+            container.innerHTML = `
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>🚨 Urgent Priority</span><span>${urgent} (${Math.round((urgent/total)*100)}%)</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(urgent/total)*100}%; background-color:#DC2626;"></div></div>
+                </div>
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>⚠️ High Priority</span><span>${high} (${Math.round((high/total)*100)}%)</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(high/total)*100}%; background-color:#F97316;"></div></div>
+                </div>
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>📌 Medium Priority</span><span>${med} (${Math.round((med/total)*100)}%)</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(med/total)*100}%; background-color:#F59E0B;"></div></div>
+                </div>
+                <div class="progress-bar-row">
+                    <div class="progress-bar-info"><span>✅ Low Priority</span><span>${low} (${Math.round((low/total)*100)}%)</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width:${(low/total)*100}%; background-color:#10B981;"></div></div>
+                </div>
+            `;
+        }
+
+        function renderDashboardRecentTable(records) {
+            const tbody = document.getElementById('dashboardRecentTableBody');
+            if (!tbody) return;
+            if (!records.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-muted);">No reviews yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = records.map(r => {
+                const s = r.sentiment || 'Neutral';
+                let bClass = 'badge-neutral';
+                if (s === 'Positive') bClass = 'badge-positive';
+                else if (s === 'Negative') bClass = 'badge-negative';
+
+                return `
+                    <tr>
+                        <td style="font-family:monospace; font-weight:600;">#${r.id}</td>
+                        <td style="max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.review)}</td>
+                        <td><span class="sentence-badge-sm ${bClass}">${s}</span></td>
+                        <td><span style="font-size:11px; font-weight:600; padding:2px 6px; border-radius:4px; background:#F1F5F9;">${r.priority || 'Low'}</span></td>
+                        <td style="font-size:12px; color:var(--text-muted);">${formatDate(r.created_at)}</td>
+                        <td><button class="btn-ghost" onclick="openReviewModal(${r.id})">View</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // My Reviews Filtering
+        function setMyReviewsFilter(sentiment, btn) {
+            activeMyReviewsFilter = sentiment;
+            document.querySelectorAll('#view-my-reviews .sentence-filter-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            filterMyReviews();
+        }
+
+        function filterMyReviews() {
+            const tbody = document.getElementById('myReviewsTableBody');
+            if (!tbody) return;
+
+            const q = (document.getElementById('myReviewsSearch')?.value || '').toLowerCase();
+            const sort = document.getElementById('myReviewsSort')?.value || 'newest';
+
+            let list = [...currentHistoryData];
+            if (activeMyReviewsFilter !== 'All') {
+                list = list.filter(r => r.sentiment === activeMyReviewsFilter);
+            }
+            if (q) {
+                list = list.filter(r => (r.review || '').toLowerCase().includes(q));
+            }
+            if (sort === 'oldest') {
+                list.sort((a,b) => a.id - b.id);
+            } else {
+                list.sort((a,b) => b.id - a.id);
+            }
+
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">No reviews found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(r => {
+                const s = r.sentiment || 'Neutral';
+                let bClass = 'badge-neutral';
+                if (s === 'Positive') bClass = 'badge-positive';
+                else if (s === 'Negative') bClass = 'badge-negative';
+
+                const conf = r.confidence ? `${parseFloat(r.confidence).toFixed(1)}%` : 'N/A';
+                const comp = r.vader_compound !== undefined ? (r.vader_compound >= 0 ? '+' : '') + parseFloat(r.vader_compound).toFixed(2) : '--';
+
+                return `
+                    <tr>
+                        <td style="font-family:monospace; font-weight:600;">#${r.id}</td>
+                        <td style="max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.review)}</td>
+                        <td><span class="sentence-badge-sm ${bClass}">${s}</span></td>
+                        <td style="font-family:monospace;">${comp}</td>
+                        <td style="font-family:monospace;">${conf}</td>
+                        <td><span style="font-size:11px; font-weight:600; padding:2px 6px; border-radius:4px; background:#F1F5F9;">${r.priority || 'Low'}</span></td>
+                        <td style="font-size:12px; color:var(--text-muted);">${formatDate(r.created_at)}</td>
+                        <td><button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="openReviewModal(${r.id})">Details</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // All Reviews Management Table Filtering & Pagination
+        function filterAllReviewsTable() {
+            const tbody = document.getElementById('historyTableBody');
+            if (!tbody) return;
+
+            const q = (document.getElementById('allReviewsSearch')?.value || '').toLowerCase();
+            const sent = document.getElementById('filterSentiment')?.value || 'All';
+            const aspect = document.getElementById('filterAspect')?.value || 'All';
+            const prio = document.getElementById('filterPriority')?.value || 'All';
+            const sort = document.getElementById('filterSort')?.value || 'newest';
+
+            let list = [...currentHistoryData];
+
+            if (sent !== 'All') list = list.filter(r => r.sentiment === sent);
+            if (prio !== 'All') list = list.filter(r => (r.priority || '').toLowerCase() === prio.toLowerCase());
+            if (aspect !== 'All') list = list.filter(r => (r.categories || '').toLowerCase().includes(aspect.toLowerCase()));
+            if (q) list = list.filter(r => (r.review || '').toLowerCase().includes(q));
+
+            if (sort === 'oldest') list.sort((a,b) => a.id - b.id);
+            else if (sort === 'compound_high') list.sort((a,b) => b.vader_compound - a.vader_compound);
+            else if (sort === 'compound_low') list.sort((a,b) => a.vader_compound - b.vader_compound);
+            else list.sort((a,b) => b.id - a.id);
+
+            const totalFiltered = list.length;
+            const totalPages = Math.ceil(totalFiltered / historyPageSize) || 1;
+            if (historyPage > totalPages) historyPage = 1;
+
+            const startIdx = (historyPage - 1) * historyPageSize;
+            const pageSlice = list.slice(startIdx, startIdx + historyPageSize);
+
+            document.getElementById('allReviewsPaginationInfo').innerText = `Showing ${pageSlice.length} of ${totalFiltered} review${totalFiltered === 1 ? '' : 's'}`;
+            document.getElementById('prevPageBtn').disabled = historyPage <= 1;
+            document.getElementById('nextPageBtn').disabled = historyPage >= totalPages;
+
+            if (!pageSlice.length) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted); font-size:13px;">No records match your filters.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = pageSlice.map(r => {
+                const s = r.sentiment || 'Neutral';
+                let bClass = 'badge-neutral';
+                if (s === 'Positive') bClass = 'badge-positive';
+                else if (s === 'Negative') bClass = 'badge-negative';
+
+                const conf = r.confidence ? `${parseFloat(r.confidence).toFixed(1)}%` : 'N/A';
+                const comp = r.vader_compound !== undefined ? (r.vader_compound >= 0 ? '+' : '') + parseFloat(r.vader_compound).toFixed(4) : '--';
+
+                return `
+                    <tr>
+                        <td style="font-family:monospace; font-weight:600;">#${r.id}</td>
+                        <td style="max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.review)}</td>
+                        <td><span class="sentence-badge-sm ${bClass}">${s}</span></td>
+                        <td style="font-family:monospace;">${comp}</td>
+                        <td style="font-family:monospace;">${conf}</td>
+                        <td style="font-size:12px; color:var(--text-muted); max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.categories || 'General')}</td>
+                        <td><span style="font-size:11px; font-weight:600; padding:2px 6px; border-radius:4px; background:#F1F5F9;">${r.priority || 'Low'}</span></td>
+                        <td style="font-size:12px; color:var(--text-muted);">${formatDate(r.created_at)}</td>
+                        <td><button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="openReviewModal(${r.id})">Details</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function changeHistoryPage(delta) {
+            historyPage += delta;
+            filterAllReviewsTable();
+        }
+
+        // Modal Handlers
+        function openReviewModal(id) {
+            const modal = document.getElementById('reviewModal');
+            if (!modal) return;
+
+            let rec = currentHistoryData.find(r => r.id === id);
+            if (!rec && currentBatchData && currentBatchData.detailed_results) {
+                rec = currentBatchData.detailed_results.find(r => (r.review_id === id || r.id === id));
+            }
+
+            if (!rec) return;
+
+            document.getElementById('modalReviewTitle').innerText = `Review #${rec.id || rec.review_id || ''}`;
+            document.getElementById('modalReviewDate').innerText = rec.created_at ? formatDate(rec.created_at) : '';
+            document.getElementById('modalReviewText').innerText = rec.review || rec.original_review || '';
+
+            const s = rec.sentiment || 'Neutral';
+            document.getElementById('modalSentiment').innerText = s;
+            document.getElementById('modalCompound').innerText = (rec.vader_compound !== undefined ? rec.vader_compound : (rec.overall_compound_score || 0.0)).toFixed(2);
+            document.getElementById('modalConfidence').innerText = rec.confidence ? `${parseFloat(rec.confidence).toFixed(1)}%` : 'N/A';
+            document.getElementById('modalSubjectivity').innerText = (rec.subjectivity || 0.0).toFixed(2);
+            document.getElementById('modalPriority').innerText = rec.priority || 'Low';
+
+            const cats = Array.isArray(rec.categories) ? rec.categories : (rec.categories || 'General').split(',');
+            document.getElementById('modalAspects').innerHTML = cats.map(c => `<span class="aspect-tag active">${escapeHtml(c.trim())}</span>`).join('');
+
             modal.style.display = 'flex';
         }
 
@@ -3344,197 +3756,54 @@ def get_interactive_dashboard():
             if (modal) modal.style.display = 'none';
         }
 
-        // Close modal when clicking outside box
-        window.addEventListener('click', (e) => {
-            const modal = document.getElementById('reviewModal');
-            if (modal && e.target === modal) {
-                modal.style.display = 'none';
+        function handleModalBackdrop(e) {
+            if (e.target.id === 'reviewModal') closeReviewModal();
+        }
+
+        function openDocModal() {
+            document.getElementById('docModal').style.display = 'flex';
+        }
+
+        function closeDocModal() {
+            document.getElementById('docModal').style.display = 'none';
+        }
+
+        function handleDocModalBackdrop(e) {
+            if (e.target.id === 'docModal') closeDocModal();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatDate(dt) {
+            if (!dt) return '--';
+            try {
+                const d = new Date(dt);
+                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch(e) { return dt; }
+        }
+
+        // Keyboard accessibility
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeReviewModal();
+                closeDocModal();
             }
         });
 
-        async function loadHistory(isManualRefresh = false) {
-            const tbody = document.getElementById('historyTableBody');
-            const refreshBtn = document.getElementById('refreshHistoryBtn');
-            const refreshSpinner = document.getElementById('refreshHistorySpinner');
-            const refreshText = document.getElementById('refreshHistoryText');
-            const chartWrapper = document.getElementById('historyChartWrapper');
-            const chartEmptyState = document.getElementById('historyChartEmptyState');
-            const summaryPills = document.getElementById('historySummaryPills');
-
-            if (isManualRefresh && refreshBtn) {
-                if (refreshSpinner) refreshSpinner.style.display = 'inline-block';
-                if (refreshText) refreshText.innerText = 'Refreshing...';
-                refreshBtn.disabled = true;
-            }
-
-            try {
-                const res = await fetch('/api/history?limit=15');
-                const rawText = await res.text();
-                let data = null;
-                try { data = JSON.parse(rawText); } catch (e) {}
-
-                if (!res.ok) {
-                    const errMsg = (data && data.detail) || rawText.trim() || `Server returned error (${res.status})`;
-                    throw new Error(errMsg);
-                }
-
-                const records = (data && data.history) || [];
-                currentHistoryData = records;
-
-                if (!records.length) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:22px; color:var(--text-muted); font-size:13.5px;">No records found. Submit a review above to start tracking history.</td></tr>';
-                    if (chartWrapper) chartWrapper.style.display = 'none';
-                    if (summaryPills) summaryPills.style.display = 'none';
-                    if (chartEmptyState) chartEmptyState.style.display = 'block';
-                    return;
-                }
-
-                if (chartWrapper) chartWrapper.style.display = 'block';
-                if (summaryPills) summaryPills.style.display = 'flex';
-                if (chartEmptyState) chartEmptyState.style.display = 'none';
-
-                // Populate summary counts
-                const summary = data.sentiment_summary || {};
-                const posEl = document.getElementById('histPosCount');
-                const negEl = document.getElementById('histNegCount');
-                const neuEl = document.getElementById('histNeuCount');
-                const totEl = document.getElementById('histTotalCount');
-                if (posEl) posEl.innerText = summary.Positive || 0;
-                if (negEl) negEl.innerText = summary.Negative || 0;
-                if (neuEl) neuEl.innerText = summary.Neutral || 0;
-                if (totEl) totEl.innerText = data.total_count || records.length;
-
-                // Populate table rows
-                tbody.innerHTML = records.map(row => {
-                    let badgeClass = 'badge-neu';
-                    if (row.sentiment === 'Positive') badgeClass = 'badge-pos';
-                    if (row.sentiment === 'Negative') badgeClass = 'badge-neg';
-
-                    const rawReview = String(row.review || '');
-                    const isLong = rawReview.length > 55;
-                    const snippet = isLong ? (rawReview.substring(0, 52) + '...') : rawReview;
-                    const safeSnippet = escapeHtml(snippet);
-                    const safeReview = escapeHtml(rawReview);
-
-                    const viewFullBtn = isLong ? `<button onclick="openReviewModal(${row.id})" style="font-size:11px; margin-left:6px; cursor:pointer; color:var(--primary); background:none; border:none; text-decoration:underline; font-weight:600;">View Full</button>` : '';
-
-                    const confVal = row.confidence !== undefined && row.confidence !== null ? (parseFloat(row.confidence) > 0 ? parseFloat(row.confidence).toFixed(1) + '%' : 'N/A') : 'N/A';
-                    const compVal = row.vader_compound !== undefined && row.vader_compound !== null ? parseFloat(row.vader_compound).toFixed(4) : '0.0000';
-
-                    let prioColor = '#059669';
-                    if (row.priority === 'High') prioColor = '#dc2626';
-                    else if (row.priority === 'Medium') prioColor = '#d97706';
-
-                    return `
-                        <tr>
-                            <td style="font-weight:600; font-family:monospace;">#${row.id}</td>
-                            <td>
-                                <span title="${safeReview}">${safeSnippet}</span>
-                                ${viewFullBtn}
-                            </td>
-                            <td><span class="badge ${badgeClass}">${row.sentiment}</span></td>
-                            <td style="font-size:12.5px;">${confVal}</td>
-                            <td style="font-family:monospace; font-size:12px;">${compVal}</td>
-                            <td><span style="font-weight:600; color:${prioColor}; font-size:12px;">${escapeHtml(row.priority || 'Low')}</span></td>
-                            <td style="font-size:11.5px; color:var(--text-muted);">${escapeHtml(row.created_at || 'Just now')}</td>
-                        </tr>
-                    `;
-                }).join('');
-
-                renderTrendChart(records);
-            } catch (err) {
-                console.error('Failed to load history:', err);
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:18px; color:#dc2626; font-size:13px;">
-                    ⚠️ Failed to retrieve historical records: ${escapeHtml(err.message)}
-                    <br><button class="btn-secondary" style="margin-top:8px; font-size:12px; padding:4px 10px;" onclick="loadHistory()">🔄 Retry</button>
-                </td></tr>`;
-                if (chartWrapper) chartWrapper.style.display = 'none';
-                if (summaryPills) summaryPills.style.display = 'none';
-                if (chartEmptyState) chartEmptyState.style.display = 'block';
-            } finally {
-                if (isManualRefresh && refreshBtn) {
-                    if (refreshSpinner) refreshSpinner.style.display = 'none';
-                    if (refreshText) refreshText.innerText = '🔄 Refresh History';
-                    refreshBtn.disabled = false;
-                }
-            }
-        }
-
-        function renderTrendChart(history) {
-            if (typeof Chart === 'undefined') {
-                console.warn('Chart.js library is not loaded. Skipping historical trend chart rendering.');
-                return;
-            }
-            const canvas = document.getElementById('trendLineChart');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (trendChartInstance) {
-                trendChartInstance.destroy();
-                trendChartInstance = null;
-            }
-
-            const rev = [...history].reverse();
-            const pointColors = rev.map(r => {
-                if (r.sentiment === 'Positive') return '#16a34a';
-                if (r.sentiment === 'Negative') return '#dc2626';
-                return '#64748b';
-            });
-
-            trendChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: rev.map(r => `#${r.id}`),
-                    datasets: [{
-                        label: 'VADER Compound Score',
-                        data: rev.map(r => r.vader_compound),
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                        pointBackgroundColor: pointColors,
-                        pointBorderColor: pointColors,
-                        pointRadius: 4.5,
-                        pointHoverRadius: 6.5,
-                        tension: 0.35,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const item = rev[context.dataIndex];
-                                    return `Compound: ${item.vader_compound} (${item.sentiment})`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            min: -1.0,
-                            max: 1.0,
-                            ticks: {
-                                stepSize: 0.5
-                            },
-                            grid: {
-                                color: '#f1f5f9'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
+        // Initialize Data on Load
+        document.addEventListener('DOMContentLoaded', function() {
             loadHistory();
-            loadMetrics();
+        });
+        window.addEventListener('load', function() {
+            loadHistory();
         });
     </script>
 </body>

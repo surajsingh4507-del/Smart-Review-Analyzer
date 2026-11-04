@@ -1508,3 +1508,65 @@ def test_57_vercel_and_safe_json_handling():
     html = resp.body.decode("utf-8")
     assert "const rawText = await res.text();" in html
     assert "data = JSON.parse(rawText);" in html
+
+
+# ============================================================================
+# 58. Sentiq Modern SaaS Redesign: Sidebar, Workspace & Analytics
+# ============================================================================
+def test_58_saas_sidebar_and_views_structure():
+    """
+    Validate the complete Sentiq UI/UX redesign:
+    1. Sidebar with 4 primary navigation items: New Review, My Reviews, Dashboard, Reviews.
+    2. Dynamic views: view-new-review, view-my-reviews, view-dashboard, view-reviews.
+    3. New Review workspace two-column layout: Input card on left, analysis results on right.
+    4. Key metrics 5-tile grid, sentence breakdown, aspect extraction, model comparisons.
+    5. Dashboard KPI cards, doughnut chart, aspect analytics, and priority bars.
+    """
+    resp = get_interactive_dashboard()
+    html = resp.body.decode('utf-8')
+
+    # Sidebar navigation items
+    assert 'id="nav-new-review"' in html
+    assert 'id="nav-my-reviews"' in html
+    assert 'id="nav-dashboard"' in html
+    assert 'id="nav-reviews"' in html
+    assert 'New Review' in html
+    assert 'My Reviews' in html
+    assert 'Dashboard' in html
+    assert 'Reviews' in html
+
+    # Views
+    assert 'id="view-new-review"' in html
+    assert 'id="view-my-reviews"' in html
+    assert 'id="view-dashboard"' in html
+    assert 'id="view-reviews"' in html
+
+    # Left column input
+    assert 'id="reviewInput"' in html
+    assert 'id="charCount"' in html
+    assert 'id="micBtn"' in html
+    assert 'id="sampleDropdown"' in html
+    assert 'id="thresholdSlider"' in html
+    assert 'id="analyzeBtn"' in html
+
+    # Right column results
+    assert 'id="emptyPlaceholder"' in html
+    assert 'id="singleResultsCard"' in html
+    assert 'id="singleSentimentBadge"' in html
+    assert 'id="singleCompoundScore"' in html
+    assert 'id="singleConfidence"' in html
+    assert 'id="singlePolarity"' in html
+    assert 'id="singleSubjectivity"' in html
+    assert 'id="singlePriorityBadge"' in html
+    assert 'id="singleSentenceTableBody"' in html
+    assert 'id="singleExplanationCard"' in html
+
+    # Dashboard KPIs & Visuals
+    assert 'id="kpiTotalReviews"' in html
+    assert 'id="kpiPositiveCount"' in html
+    assert 'id="kpiNegativeCount"' in html
+    assert 'id="kpiNeutralCount"' in html
+    assert 'id="dashboardDoughnutChart"' in html
+    assert 'id="aspectAnalyticsBars"' in html
+    assert 'id="priorityAnalyticsBars"' in html
+    assert 'id="dashboardRecentTableBody"' in html
