@@ -9,7 +9,8 @@ from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse, Response, JSONResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, Response, JSONResponse, FileResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel
 import joblib
 
@@ -34,6 +35,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(StarletteHTTPException)
+async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+@app.exception_handler(HTTPException)
+async def fastapi_http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
@@ -48,7 +63,7 @@ def get_db_path() -> str:
     env_path = os.environ.get("SQLITE_DB_PATH")
     if env_path:
         return os.path.abspath(env_path)
-    if os.environ.get("VERCEL"):
+    if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
         return "/tmp/reviews.db"
     return os.path.abspath(os.path.join(BASE_DIR, "reviews.db"))
 
@@ -851,6 +866,38 @@ def get_analysis_history(limit: int = 15, offset: int = 0):
         raise HTTPException(status_code=500, detail=f"Database error querying history: {str(e)}")
 
 
+
+@app.get("/assets/{filename}")
+def serve_asset(filename: str):
+    """
+    Serve static assets (e.g. Sentiq logos, branding icons) securely from the assets directory.
+    """
+    assets_dir = os.path.abspath(os.path.join(BASE_DIR, "assets"))
+    target_file = os.path.abspath(os.path.join(assets_dir, filename))
+    if not target_file.startswith(assets_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if os.path.isfile(target_file):
+        media_type = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+        return FileResponse(target_file, media_type=media_type)
+    raise HTTPException(status_code=404, detail="Asset not found")
+
+
+def get_sentiq_logo_uri() -> str:
+    """
+    Returns base64 data URI of Sentiq logo for instantaneous zero-latency rendering,
+    with fallback to static asset URL.
+    """
+    b64_file = os.path.join(BASE_DIR, "assets", "sentiq-logo-jpg.base64.txt")
+    if os.path.isfile(b64_file):
+        try:
+            with open(b64_file, "r", encoding="utf-8") as f:
+                b64_data = f.read().strip()
+                if b64_data:
+                    return f"data:image/jpeg;base64,{b64_data}"
+        except Exception as e:
+            logger.warning(f"Error reading logo base64 file: {e}")
+    return "/assets/sentiq-logo.png"
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api", response_class=HTMLResponse)
 @app.get("/api/", response_class=HTMLResponse)
@@ -858,12 +905,13 @@ def get_analysis_history(limit: int = 15, offset: int = 0):
 @app.get("/api/index.py", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
 def get_interactive_dashboard():
+    logo_src = get_sentiq_logo_uri()
     html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Review Analyzer v3.0 - AI Sentiment & Multi-Format Intelligence</title>
+    <title>Sentiq – Review Intelligence | Smart Review Analyzer v3.0</title>
     <!-- Chart.js for Visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -1493,15 +1541,182 @@ def get_interactive_dashboard():
             }
             .card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; page-break-inside: avoid; }
         }
+
+        /* ========================================== */
+        /* SENTIQ BRANDED STARTUP INTRO SCREEN       */
+        /* ========================================== */
+        body.sentiq-intro-active {
+            overflow: hidden !important;
+            height: 100vh !important;
+        }
+
+        .sentiq-intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #FFFFFF;
+            z-index: 9999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            /* Stage 1: 0-300ms overlay background; Stage 4: 1800ms-2400ms fade out (duration 600ms, delay 1800ms) */
+            animation: sentiqOverlayFadeOut 600ms cubic-bezier(0.4, 0, 0.2, 1) 1800ms forwards;
+            pointer-events: all;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .sentiq-intro-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            max-width: 90vw;
+        }
+
+        .sentiq-logo-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            /* Stage 2: 300ms-900ms fade in and scale from 0.90 to 1.0 (duration 600ms, delay 300ms) */
+            opacity: 0;
+            transform: scale(0.90);
+            animation: sentiqLogoReveal 600ms cubic-bezier(0.16, 1, 0.3, 1) 300ms forwards;
+        }
+
+        .sentiq-intro-logo {
+            width: 100%;
+            max-width: 440px;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        .sentiq-intro-tagline {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #142B52;
+            font-size: 1.15rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            transform: translateY(8px);
+            /* Stage 3: 900ms-1500ms fade in tagline (duration 600ms, delay 900ms) */
+            animation: sentiqTaglineFadeIn 600ms cubic-bezier(0.16, 1, 0.3, 1) 900ms forwards;
+        }
+
+        @keyframes sentiqLogoReveal {
+            0% {
+                opacity: 0;
+                transform: scale(0.90);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1.0);
+            }
+        }
+
+        @keyframes sentiqTaglineFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes sentiqOverlayFadeOut {
+            0% {
+                opacity: 1;
+                visibility: visible;
+            }
+            99% {
+                opacity: 0;
+                visibility: visible;
+            }
+            100% {
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+            }
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .sentiq-intro-logo {
+                max-width: 320px;
+            }
+            .sentiq-intro-tagline {
+                font-size: 1rem;
+                letter-spacing: 0.3px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sentiq-intro-logo {
+                max-width: 250px;
+            }
+            .sentiq-intro-tagline {
+                font-size: 0.88rem;
+                letter-spacing: 0.2px;
+            }
+        }
+
+        /* Accessibility: Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            .sentiq-intro-overlay {
+                animation-duration: 200ms !important;
+                animation-delay: 400ms !important;
+            }
+            .sentiq-logo-wrapper {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+            .sentiq-intro-tagline {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- ========================================== -->
+    <!-- SENTIQ BRANDED STARTUP INTRO SCREEN       -->
+    <!-- ========================================== -->
+    <div id="sentiqIntroOverlay" class="sentiq-intro-overlay" aria-hidden="true">
+        <div class="sentiq-intro-content">
+            <div class="sentiq-logo-wrapper">
+                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq – Review Intelligence" class="sentiq-intro-logo" id="sentiqIntroImg">
+            </div>
+            <p class="sentiq-intro-tagline">Every Review Has a Story. We Decode It.</p>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Header -->
         <header>
-            <div class="header-title">
-                <h1>🧠 Smart Review Analyzer <span style="font-size: 13px; background: #e0e7ff; color: #4338ca; padding: 4px 8px; border-radius: 6px; font-weight: 700;">v3.0</span></h1>
-                <p>Natural Language Processing, Machine Learning & Multi-Format Document Intelligence</p>
+            <div class="header-title" style="display: flex; align-items: center; gap: 16px;">
+                <img src="__SENTIQ_LOGO_SRC__" alt="Sentiq" style="height: 44px; width: auto; object-fit: contain; border-radius: 4px;">
+                <div>
+                    <h1 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        Sentiq <span style="font-size: 15px; font-weight: 600; color: #6D28D9;">Review Intelligence</span>
+                        <span style="font-size: 12px; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-weight: 700;">v3.0</span>
+                    </h1>
+                    <p style="margin: 3px 0 0 0; color: #64748b; font-size: 13px;">Every Review Has a Story. We Decode It. — Natural Language Processing & Multi-Format Intelligence</p>
+                </div>
             </div>
             <div class="header-actions">
                 <button onclick="openDocModal()" class="btn-link" title="Open Technical Reference Documentation">
@@ -2127,6 +2342,32 @@ def get_interactive_dashboard():
     </div>
 
     <script>
+        // ==========================================
+        // SENTIQ STARTUP ANIMATION CONTROLLER
+        // ==========================================
+        (function initSentiqStartupIntro() {
+            document.body.classList.add('sentiq-intro-active');
+            const overlay = document.getElementById('sentiqIntroOverlay');
+            if (!overlay) return;
+
+            function dismissIntro() {
+                if (overlay.dataset.dismissed === 'true') return;
+                overlay.dataset.dismissed = 'true';
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    document.body.classList.remove('sentiq-intro-active');
+                }, 300);
+            }
+
+            // Normal completion at 2400ms (Stage 4 end)
+            setTimeout(dismissIntro, 2400);
+
+            // Clicking overlay dismisses early without delay
+            overlay.addEventListener('click', dismissIntro);
+        })();
+
         let pieChartInstance = null;
         let trendChartInstance = null;
         let batchPieChartInstance = null;
@@ -2356,17 +2597,21 @@ def get_interactive_dashboard():
                     body: JSON.stringify({ review: text, threshold: threshold })
                 });
 
-                let data;
-                const contentType = res.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    data = await res.json();
-                } else {
-                    const rawText = await res.text();
-                    throw new Error(rawText || `Server returned error (${res.status})`);
+                const rawText = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {
+                    // Non-JSON response (e.g. plain text 500 error from proxy/serverless)
                 }
 
                 if (!res.ok) {
-                    throw new Error(data.detail || `Analysis failed (${res.status})`);
+                    const errMsg = (data && data.detail) ? data.detail : (rawText.trim() || `Analysis failed (${res.status})`);
+                    throw new Error(errMsg);
+                }
+
+                if (!data) {
+                    throw new Error('Analysis returned an empty or invalid response.');
                 }
 
                 renderSingleResults(data);
@@ -2620,16 +2865,19 @@ def get_interactive_dashboard():
 
             try {
                 const res = await fetch(url, { method: 'POST', body: formData });
-                let data;
-                const contentType = res.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    data = await res.json();
-                } else {
-                    const rawText = await res.text();
-                    throw new Error(rawText || `Server returned error (${res.status})`);
-                }
+                const rawText = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {}
+
                 if (!res.ok) {
-                    throw new Error(data.detail || `File processing failed (${res.status})`);
+                    const errMsg = (data && data.detail) ? data.detail : (rawText.trim() || `File processing failed (${res.status})`);
+                    throw new Error(errMsg);
+                }
+
+                if (!data) {
+                    throw new Error('File processing returned an empty or invalid response.');
                 }
                 currentBatchData = data;
                 renderBatchDashboard(data);
@@ -2681,15 +2929,20 @@ def get_interactive_dashboard():
                     body: JSON.stringify({ text: raw, threshold: threshold, mode: mode })
                 });
 
-                let data;
-                const contentType = res.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    data = await res.json();
-                } else {
-                    const rawText = await res.text();
-                    throw new Error(rawText || `Server returned error (${res.status})`);
+                const rawText = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {}
+
+                if (!res.ok) {
+                    const errMsg = (data && data.detail) ? data.detail : (rawText.trim() || `Batch analysis failed (${res.status})`);
+                    throw new Error(errMsg);
                 }
-                if (!res.ok) throw new Error(data.detail || `Batch analysis failed (${res.status})`);
+
+                if (!data) {
+                    throw new Error('Batch processing returned an empty or invalid response.');
+                }
                 currentBatchData = data;
                 renderBatchDashboard(data);
                 loadHistory();
@@ -2983,7 +3236,13 @@ def get_interactive_dashboard():
         async function loadMetrics() {
             try {
                 const res = await fetch('/api/metrics');
-                const data = await res.json();
+                const rawText = await res.text();
+                let data = null;
+                try { data = JSON.parse(rawText); } catch (e) {}
+                if (!res.ok || !data) {
+                    console.warn('Metrics endpoint error:', rawText);
+                    return;
+                }
                 
                 const tbody = document.getElementById('metricsTableBody');
                 tbody.innerHTML = `
@@ -3110,12 +3369,16 @@ def get_interactive_dashboard():
 
             try {
                 const res = await fetch('/api/history?limit=15');
+                const rawText = await res.text();
+                let data = null;
+                try { data = JSON.parse(rawText); } catch (e) {}
+
                 if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.detail || `Server returned error (${res.status})`);
+                    const errMsg = (data && data.detail) || rawText.trim() || `Server returned error (${res.status})`;
+                    throw new Error(errMsg);
                 }
-                const data = await res.json();
-                const records = data.history || [];
+
+                const records = (data && data.history) || [];
                 currentHistoryData = records;
 
                 if (!records.length) {
@@ -3277,4 +3540,4 @@ def get_interactive_dashboard():
 </body>
 </html>
 """
-    return HTMLResponse(content=html_content)
+    return HTMLResponse(content=html_content.replace("__SENTIQ_LOGO_SRC__", logo_src))

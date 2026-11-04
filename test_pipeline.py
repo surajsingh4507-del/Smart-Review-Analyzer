@@ -1419,3 +1419,92 @@ def test_54_single_review_empty_and_unanalyzable_content_resilience():
     assert valid_res["sentiment"] in {"Positive", "Negative", "Neutral"}
 
 
+
+
+# ============================================================================
+# 55. Sentiq Branded Animated Logo Intro Screen
+# ============================================================================
+def test_55_sentiq_intro_screen_elements():
+    """
+    Ensure the Sentiq animated intro screen elements, CSS keyframes,
+    tagline, and startup dismissal script are properly present in the dashboard.
+    """
+    resp = get_interactive_dashboard()
+    html = resp.body.decode("utf-8")
+
+    # Brand elements & overlay
+    assert 'id="sentiqIntroOverlay"' in html
+    assert 'class="sentiq-intro-logo"' in html
+    assert 'class="sentiq-intro-tagline"' in html
+    assert "Every Review Has a Story. We Decode It." in html
+    assert "Sentiq" in html
+    assert "Review Intelligence" in html
+
+    # CSS Animations & responsiveness
+    assert "sentiqLogoReveal" in html
+    assert "sentiqTaglineFadeIn" in html
+    assert "sentiqOverlayFadeOut" in html
+    assert "prefers-reduced-motion" in html
+    assert "sentiq-intro-active" in html
+
+    # Startup controller
+    assert "initSentiqStartupIntro" in html
+
+
+# ============================================================================
+# 56. Sentiq Static Assets and Logo Endpoint
+# ============================================================================
+def test_56_assets_endpoint():
+    """
+    Verify /assets/{filename} route correctly resolves existing images
+    and safely rejects missing or unauthorized paths.
+    """
+    from main import serve_asset
+    
+    # Existing logo PNG
+    png_resp = serve_asset("sentiq-logo.png")
+    assert png_resp.media_type == "image/png"
+    assert os.path.exists(png_resp.path)
+
+    # Existing logo JPG
+    jpg_resp = serve_asset("sentiq-logo.jpg")
+    assert jpg_resp.media_type == "image/jpeg"
+    assert os.path.exists(jpg_resp.path)
+
+    # Non-existent asset
+    with pytest.raises(HTTPException) as exc404:
+        serve_asset("non_existent_image.png")
+    assert exc404.value.status_code == 404
+
+    # Traversal attempt
+    with pytest.raises(HTTPException) as exc403:
+        serve_asset("../main.py")
+    assert exc403.value.status_code in (403, 404)
+
+
+# ============================================================================
+# 57. Vercel Configuration Route Rewrites & Safe JSON Handling
+# ============================================================================
+def test_57_vercel_and_safe_json_handling():
+    """
+    Ensure vercel.json rewrites all routes including /api/* to /api/index.py,
+    preventing missing route 500 errors on serverless.
+    Also ensure frontend JS employs safe text parsing to avoid
+    'Unexpected token I, Internal S... is not valid JSON' exceptions.
+    """
+    import json
+    vercel_path = os.path.abspath(r"e:\smart review analyzer\Smart-Review-Analyzer/vercel.json")
+    with open(vercel_path, "r", encoding="utf-8") as f:
+        v_data = json.load(f)
+    
+    rewrites = v_data.get("rewrites", [])
+    assert len(rewrites) >= 1
+    # Ensure no negative lookahead excluding /api/
+    assert "(?!api/)" not in rewrites[0]["source"]
+    assert rewrites[0]["destination"] == "/api/index.py"
+
+    # Verify frontend safe JSON parsing in dashboard
+    resp = get_interactive_dashboard()
+    html = resp.body.decode("utf-8")
+    assert "const rawText = await res.text();" in html
+    assert "data = JSON.parse(rawText);" in html
