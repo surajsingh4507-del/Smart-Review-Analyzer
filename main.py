@@ -27,6 +27,51 @@ app = FastAPI(
     version="3.0.0"
 )
 
+import urllib.parse
+from starlette.types import ASGIApp, Scope, Receive, Send
+
+def unpack_asgi_scope(scope: dict) -> dict:
+    if scope.get("type") == "http":
+        qs_bytes = scope.get("query_string", b"")
+        qs = qs_bytes.decode("latin1", errors="ignore")
+        if "__route_path__" in qs:
+            params = urllib.parse.parse_qs(qs, keep_blank_values=True)
+            if "__route_path__" in params:
+                route_vals = params.pop("__route_path__")
+                if route_vals and route_vals[0]:
+                    real_path = route_vals[0]
+                    if "?" in real_path:
+                        real_path, extra_qs = real_path.split("?", 1)
+                        extra_params = urllib.parse.parse_qs(extra_qs, keep_blank_values=True)
+                        for k, v in extra_params.items():
+                            params.setdefault(k, []).extend(v)
+                    scope["query_string"] = urllib.parse.urlencode(params, doseq=True).encode("latin1")
+                    real_path = "/" + real_path.lstrip("/")
+                    if real_path in ["/api/index.py", "/api/index", "/api", "/api/"]:
+                        real_path = "/"
+                    scope["path"] = real_path
+                    scope["raw_path"] = real_path.encode("latin1")
+        elif scope.get("path") in ["/api/index.py", "/api/index", "/api", "/api/"]:
+            headers = dict(scope.get("headers", []))
+            matched = headers.get(b"x-matched-path", b"").decode("latin1", errors="ignore")
+            if matched and not matched.startswith("/api/index.py"):
+                scope["path"] = matched
+                scope["raw_path"] = matched.encode("latin1")
+            else:
+                scope["path"] = "/"
+                scope["raw_path"] = b"/"
+    return scope
+
+class VercelPathUnpackerMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        unpack_asgi_scope(scope)
+        await self.app(scope, receive, send)
+
+app.add_middleware(VercelPathUnpackerMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -1003,7 +1048,7 @@ def api_index_post_handler(payload: Dict[str, Any] = None):
 @app.get("/api/index/", response_class=HTMLResponse)
 @app.get("/api/index.py", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
-def get_interactive_dashboard(request: Request = None):
+def get_interactive_dashboard():
     logo_src = get_sentiq_logo_uri()
     html_content = """<!DOCTYPE html>
 <html lang="en">
@@ -4001,21 +4046,4 @@ def get_interactive_dashboard(request: Request = None):
 </body>
 </html>
 """
-    headers_debug = {}
-    path_debug = ""
-    qs_debug = ""
-    if request:
-        try:
-            headers_debug = {k: v for k, v in request.headers.items()}
-            path_debug = str(request.url.path)
-            qs_debug = str(request.scope.get("query_string", b""))
-        except Exception:
-            pass
-    return HTMLResponse(
-        content=html_content.replace("__SENTIQ_LOGO_SRC__", logo_src),
-        headers={
-            "X-Debug-Path": path_debug,
-            "X-Debug-QS": qs_debug,
-            "X-Debug-Headers": json.dumps(headers_debug)[:800]
-        }
-    )
+    return HTMLResponse(content=html_content.replace("__SENTIQ_LOGO_SRC__", logo_src))
